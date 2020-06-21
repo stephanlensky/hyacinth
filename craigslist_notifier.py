@@ -76,6 +76,8 @@ def dualsport_filter(result):
             or 'husqvarna' in name
             or 'wr' in name
             or ('yamaha' in name and 'dual' in name)
+            or ('yamaha' in name and 'xt' in name)
+            or 'xr' in name
             or 'klr' in name
             or ('dr' in name and 'suzuki' in name)
             or 'drz' in name
