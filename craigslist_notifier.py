@@ -1,11 +1,17 @@
 import configparser
 from datetime import datetime, timedelta
 import time
+import logging
 from slack_webhook import Slack
 from craigslist import CraigslistForSale
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 import dateutil.parser
+
+
+def tsprint(msg, **kwargs):
+    print('{} {}'.format(datetime.now().strftime("[%H:%M:%S]"), msg), **kwargs)
+
 
 home_lat_long = (42.771, -71.510)
 slack_config = configparser.ConfigParser()
@@ -41,11 +47,19 @@ def get_listings(last_run=None, area=areas['New England/New York'], max_price=60
     dt_fmt = '%Y-%m-%d %H:%M'
 
     results = []
+    newest_listing_created = None
     for result in cl_fs.get_results(sort_by='newest'):
+        if not newest_listing_created:
+            result2 = cl_fs.get_listing(result)
+            newest_listing_created = datetime.strptime(result2['created'], dt_fmt)
         result['last_updated'] = datetime.strptime(result['last_updated'], dt_fmt)
-        if last_run and result['last_updated'] < last_run:
-            break
+        if last_run and result['last_updated'] <= last_run:
+            result2 = cl_fs.get_listing(result)
+            result2['created'] = datetime.strptime(result2['created'], dt_fmt)
+            if result2['created'] <= last_run:
+                break
         if filter and not filter(result):
+            tsprint('\tDiscarding {}'.format(result['name']))
             continue
         result = cl_fs.get_listing(result)
         result['created'] = datetime.strptime(result['created'], dt_fmt)
@@ -53,7 +67,7 @@ def get_listings(last_run=None, area=areas['New England/New York'], max_price=60
         result['location'] = geolocator.reverse(str(result['geotag'])[1:-1]).address
         time.sleep(1)  # to comply with geocoder api limit
         results.append(result)
-    return results
+    return newest_listing_created, results
 
 
 def notify_results(results, slack):
@@ -62,7 +76,7 @@ def notify_results(results, slack):
         slack.post(attachments=[{
             'title': r['name'],
             'title_link': r['url'],
-            'text': '*{} - {}, {} ({} mi.)*\n\n{}'.format(r['price'], r['location'][3], r['location'][5], int(r['distance']), r['body']),
+            'text': '*{} - {}, {} ({} mi. away)*\n\n{}'.format(r['price'], r['location'][3], r['location'][5], int(r['distance']), r['body']),
             'thumb_url': r['images'][0] if len(r['images']) else None,
             'ts': time.mktime(r['created'].timetuple())
         }])
@@ -71,7 +85,7 @@ def notify_results(results, slack):
 def dualsport_filter(result):
     name = result['name'].lower()
     return ('klx' in name
-            or ('ktm' in name and '690' not in name and 'duke' not in name and 'sx' not in name)
+            or ('ktm' in name and 'duke' not in name and 'sx' not in name)
             or 'exc' in name.replace('excellent', '')
             or 'husqvarna' in name
             or 'wr' in name
@@ -80,8 +94,10 @@ def dualsport_filter(result):
             or 'xr' in name
             or 'klr' in name
             or ('dr' in name and 'suzuki' in name)
-            or 'drz' in name
-            or 'crf' in name and 'crf 50' not in name and 'crf50' not in name)
+            or ('drz' in name and 'drz 50' not in name and 'drz50' not in name)
+            or ('crf' in name and 'crf 50' not in name and 'crf50' not in name)
+            or 'beta' in name
+            or 'swm' in name)
 
 
 slack = Slack(url=channels['#bikes-2020'])
@@ -89,22 +105,24 @@ slack = Slack(url=channels['#bikes-2020'])
 
 if __name__ == '__main__':
     while True:
-        now = datetime.now()
         last_run = dateutil.parser.parse(open('last_run.txt', 'r').read())
 
         all_results = []
+        most_new_listing_time = None
         for area in areas:
-            print('Getting new listings for {}...'.format(area))
-            results = get_listings(last_run=last_run, area=areas[area], filter=dualsport_filter)
+            tsprint('Getting new listings for {}...'.format(area))
+            newest_listing_time, results = get_listings(last_run=last_run, area=areas[area], filter=dualsport_filter)
+            if not most_new_listing_time or newest_listing_time > most_new_listing_time:
+                most_new_listing_time = newest_listing_time
             for r in results:
-                print("\t* Found result {}".format(r['name']))
+                tsprint("\t* Found result {}".format(r['name']))
                 all_results.append(r)
         all_results.sort(key=lambda r: r['created'])
         notify_results(all_results, slack)
 
-        print('Saving last run time...', end='', flush=True)
-        open('last_run.txt', 'w').write(now.isoformat())
+        tsprint('Saving last run time...', end='', flush=True)
+        open('last_run.txt', 'w').write(most_new_listing_time.isoformat())
         print('done')
 
-        print('Sleeping 15 minutes!')
+        tsprint('Sleeping 15 minutes!')
         time.sleep(15 * 60)  # sleep for 15 minutes
