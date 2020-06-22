@@ -73,10 +73,12 @@ def get_listings(last_run=None, area=areas['New England/New York'], max_price=60
 def notify_results(results, slack):
     for r in results:
         r['location'] = r['location'].split(', ')
+        # sometimes street address is missing from geocode result, so town/state position in geocoded string varies
+        loc_mod = -1 if r['location'][5].isdigit() else 0
         slack.post(attachments=[{
             'title': r['name'],
             'title_link': r['url'],
-            'text': '*{} - {}, {} ({} mi. away)*\n\n{}'.format(r['price'], r['location'][3], r['location'][5], int(r['distance']), r['body']),
+            'text': '*{} - {}, {} ({} mi. away)*\n\n{}'.format(r['price'], r['location'][3 + loc_mod], r['location'][5 + loc_mod], int(r['distance']), r['body']),
             'thumb_url': r['images'][0] if len(r['images']) else None,
             'ts': time.mktime(r['created'].timetuple())
         }])
