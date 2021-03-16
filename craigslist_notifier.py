@@ -1,7 +1,6 @@
 import configparser
 from datetime import datetime, timedelta
 import time
-import logging
 from slack_webhook import Slack
 from craigslist import CraigslistForSale
 from geopy.geocoders import Nominatim
@@ -74,41 +73,48 @@ def notify_results(results, slack):
     for r in results:
         r['location'] = r['location'].split(', ')
         # sometimes street address is missing from geocode result, so town/state position in geocoded string varies
-        loc_mod = -1 if r['location'][5].isdigit() else 0
+        try:
+            loc_mod = -1 if r['location'][5].isdigit() else 0
+            location = '{}, {}'.format(r['location'][3 + loc_mod], r['location'][5 + loc_mod])
+        except Exception:
+            location = r['location']
         slack.post(attachments=[{
             'title': r['name'],
             'title_link': r['url'],
-            'text': '*{} - {}, {} ({} mi. away)*\n\n{}'.format(r['price'], r['location'][3 + loc_mod], r['location'][5 + loc_mod], int(r['distance']), r['body']),
+            'text': '*{} - {} ({} mi. away)*\n\n{}'.format(r['price'], location, int(r['distance']), r['body']),
             'thumb_url': r['images'][0] if len(r['images']) else None,
             'ts': time.mktime(r['created'].timetuple())
         }])
 
 
 def dualsport_filter(result):
-    name = result['name'].lower()
+    name = result['name'].lower().replace('excellent', '').replace('showroom', '')
     return ('klx' in name
             or ('ktm' in name and 'duke' not in name and 'sx' not in name)
             or 'exc' in name.replace('excellent', '')
             or 'husqvarna' in name
             or 'wr' in name
+            or ('yz' in name and 'yz 65' not in name and 'yz65' not in name and 'yzf' not in name and 'yz 85' not in name and 'yz85' not in name)
             or ('yamaha' in name and 'dual' in name)
             or ('yamaha' in name and 'xt' in name)
-            or 'xr' in name
+            or ('xr' in name and 'gsxr' not in name)
             or 'klr' in name
             or ('dr' in name and 'suzuki' in name)
             or ('drz' in name and 'drz 50' not in name and 'drz50' not in name)
-            or ('crf' in name and 'crf 50' not in name and 'crf50' not in name)
+            or ('crf' in name and 'crf 50' not in name and 'crf50' not in name and 'crf80' not in name and 'crf 80' not in name)
             or 'beta' in name
-            or 'swm' in name)
+            or 'swm' in name
+            or 'tw 200' in name or 'tw200' in name)
 
 
-slack = Slack(url=channels['#bikes-2020'])
+slack = Slack(url=channels['#bikes-2021'])
 
 
 if __name__ == '__main__':
     while True:
         last_run = dateutil.parser.parse(open('last_run.txt', 'r').read())
 
+        name_set = set()
         all_results = []
         most_new_listing_time = None
         for area in areas:
@@ -117,8 +123,12 @@ if __name__ == '__main__':
             if not most_new_listing_time or newest_listing_time > most_new_listing_time:
                 most_new_listing_time = newest_listing_time
             for r in results:
-                tsprint("\t* Found result {}".format(r['name']))
-                all_results.append(r)
+                if r['name'] not in name_set:
+                    tsprint("\t* Found result {}".format(r['name']))
+                    all_results.append(r)
+                    name_set.add(r['name'])
+                else:
+                    tsprint('\tDiscarding duplicate {}'.format(r['name']))
         all_results.sort(key=lambda r: r['created'])
         notify_results(all_results, slack)
 
@@ -126,5 +136,5 @@ if __name__ == '__main__':
         open('last_run.txt', 'w').write(most_new_listing_time.isoformat())
         print('done')
 
-        tsprint('Sleeping 15 minutes!')
-        time.sleep(15 * 60)  # sleep for 15 minutes
+        tsprint('Sleeping 10 minutes!')
+        time.sleep(10 * 60)  # sleep for 10 minutes
