@@ -6,6 +6,7 @@ from craigslist import CraigslistForSale
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 import dateutil.parser
+from state_names import state_names
 
 
 def tsprint(msg, **kwargs):
@@ -31,12 +32,12 @@ for area in cl_config:
 geolocator = Nominatim(user_agent="craigslist_notifier")
 
 
-def get_listings(last_run=None, area=areas['New England/New York'], max_price=6000, filter=None):
+def get_listings(last_run=None, area=areas['New England/New York'], category='sss', min_price=2, max_price=6000, filter=None):
     cl_fs = CraigslistForSale(
         site=area['site'],
-        category='mca',
+        category=category,
         filters={
-            'min_price': 2,
+            'min_price': min_price,
             'max_price': max_price,
             'search_nearby': 2,
             'nearby_area': area['nearby_areas']
@@ -63,7 +64,11 @@ def get_listings(last_run=None, area=areas['New England/New York'], max_price=60
         result = cl_fs.get_listing(result)
         result['created'] = datetime.strptime(result['created'], dt_fmt)
         result['distance'] = geodesic(home_lat_long, result['geotag']).miles
-        result['location'] = geolocator.reverse(str(result['geotag'])[1:-1]).address
+        location = geolocator.reverse(str(result['geotag'])[1:-1])
+        if location:
+            result['location'] = location.address
+        else:  # protects against users putting in lat/long in places that can't be geocoded, like the ocean
+            result['location'] = str(result['geotag'])[1:-1]
         time.sleep(1)  # to comply with geocoder api limit
         results.append(result)
     return newest_listing_created, results
@@ -119,7 +124,7 @@ if __name__ == '__main__':
         most_new_listing_time = None
         for area in areas:
             tsprint('Getting new listings for {}...'.format(area))
-            newest_listing_time, results = get_listings(last_run=last_run, area=areas[area], filter=dualsport_filter)
+            newest_listing_time, results = get_listings(last_run=last_run, area=areas[area], category='mca', filter=dualsport_filter)
             if not most_new_listing_time or newest_listing_time > most_new_listing_time:
                 most_new_listing_time = newest_listing_time
             for r in results:
