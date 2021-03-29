@@ -7,6 +7,10 @@ from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 import dateutil.parser
 from state_names import state_names
+import re
+from pathlib import Path
+import requests
+import json
 
 
 def tsprint(msg, **kwargs):
@@ -30,6 +34,17 @@ for area in cl_config:
         'nearby_areas': cl_config[area]['nearbyAreas'].split(',')
     }
 geolocator = Nominatim(user_agent="craigslist_notifier")
+areas_json_path = 'craigslist_areas.json'
+if not Path(areas_json_path).exists():
+    r = requests.get('https://reference.craigslist.org/Areas')
+    with open(areas_json_path, 'w') as areas_json_file:
+        areas_json_file.write(r.text)
+    areas_json = json.loads(r.text)
+else:
+    areas_json = json.load(open(areas_json_path, 'r'))
+areas_reference = {}
+for a in areas_json:
+    areas_reference[a['Hostname']] = a
 
 
 def get_listings(last_run=None, area=areas['New England/New York'], category='sss', min_price=2, max_price=6000, filter=None):
@@ -63,6 +78,14 @@ def get_listings(last_run=None, area=areas['New England/New York'], category='ss
             continue
         result = cl_fs.get_listing(result)
         result['created'] = datetime.strptime(result['created'], dt_fmt)
+
+        # if there is no location provided, use the lat/long of the craigslist site
+        # this is probably a city, e.g. providence, albany, etc.
+        if not result['geotag']:
+            site = re.match(r'http(s)?://(www\.)?(.+)\.craigslist', result['url']).groups()[2]
+            result['geotag'] = areas_reference[site]['Latitude'], areas_reference[site]['Longitude']
+            print(result['geotag'])
+
         result['distance'] = geodesic(home_lat_long, result['geotag']).miles
         location = geolocator.reverse(str(result['geotag'])[1:-1])
         if location:
@@ -93,23 +116,24 @@ def notify_results(results, slack):
 
 
 def dualsport_filter(result):
-    name = result['name'].lower().replace('excellent', '').replace('showroom', '')
-    return ('klx' in name
-            or ('ktm' in name and 'duke' not in name and 'sx' not in name)
-            or 'exc' in name.replace('excellent', '')
-            or 'husqvarna' in name
-            or 'wr' in name
-            or ('yz' in name and 'yz 65' not in name and 'yz65' not in name and 'yzf' not in name and 'yz 85' not in name and 'yz85' not in name)
-            or ('yamaha' in name and 'dual' in name)
-            or ('yamaha' in name and 'xt' in name)
-            or ('xr' in name and 'gsxr' not in name)
-            or 'klr' in name
-            or ('dr' in name and 'suzuki' in name)
-            or ('drz' in name and 'drz 50' not in name and 'drz50' not in name)
-            or ('crf' in name and 'crf 50' not in name and 'crf50' not in name and 'crf80' not in name and 'crf 80' not in name)
-            or 'beta' in name
-            or 'swm' in name
-            or 'tw 200' in name or 'tw200' in name)
+    name = result['name'].lower().replace('excellent', '').replace('showroom', '').replace('lowrider', '').replace('extras', '')
+    return 'harley' not in name and (
+           'klx' in name
+           or ('ktm' in name and 'duke' not in name and 'sx' not in name and 'rc' not in name)
+           or 'exc' in name.replace('exce', '')
+           or 'husqvarna' in name
+           or 'wr' in name
+           or ('yz' in name and 'yz 65' not in name and 'yz65' not in name and 'yzf' not in name and 'yz 85' not in name and 'yz85' not in name)
+           or ('yamaha' in name and 'dual' in name)
+           or ('yamaha' in name and 'xt' in name)
+           or ('xr' in name and 'gsxr' not in name)
+           or 'klr' in name
+           or ('dr' in name and 'suzuki' in name)
+           or ('drz' in name and 'drz 50' not in name and 'drz50' not in name)
+           or ('crf' in name and 'crf 50' not in name and 'crf50' not in name and 'crf80' not in name and 'crf 80' not in name)
+           or 'beta' in name
+           or 'swm' in name
+           or 'tw 200' in name or 'tw200' in name)
 
 
 slack = Slack(url=channels['#bikes-2021'])
