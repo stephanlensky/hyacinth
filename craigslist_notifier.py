@@ -11,13 +11,13 @@ import re
 from pathlib import Path
 import requests
 import json
+import threading
 
 
 def tsprint(msg, **kwargs):
     print('{} {}'.format(datetime.now().strftime("[%H:%M:%S]"), msg), **kwargs)
 
 
-home_lat_long = (42.771, -71.510)
 slack_config = configparser.ConfigParser()
 slack_config.read('config.ini')
 channels = {}
@@ -47,7 +47,7 @@ for a in areas_json:
     areas_reference[a['Hostname']] = a
 
 
-def get_listings(last_run=None, area=areas['New England/New York'], category='sss', min_price=2, max_price=6000, filter=None):
+def get_listings(last_run=None, area=areas['New England/New York'], category='sss', min_price=2, max_price=6000, home_lat_long=(42.771, -71.510), filter=None):
     cl_fs = CraigslistForSale(
         site=area['site'],
         category=category,
@@ -137,6 +137,77 @@ def dualsport_filter(result):
 
 
 slack = Slack(url=channels['#bikes-2021'])
+
+
+class CraigslistNotifier(threading.Thread):
+
+    def __init__(self, results_callback, results_filter):
+        self.__stop_event = threading.Event()
+        self.__pause_event = threading.Event()
+        self.__pause_event.set()
+        self.interval = timedelta(minutes=10)
+
+        self.home_lat_long = (42.771, -71.510)
+        self.last_run = datetime.now() - self.interval
+        # self.last_run = dateutil.parser.parse('2021-03-29T16:04:00')
+        self.last_listing = None
+        self.results_callback = results_callback
+        self.filter = results_filter
+
+        super().__init__()
+
+    def run(self):
+        # if this notifier is reloaded from disk, it may still have some time it needs to wait before running the first time
+        time_to_wait = self.last_run + self.interval - datetime.now()
+        if time_to_wait.total_seconds() > 0:
+            self.__stop_event.wait(time_to_wait.total_seconds())
+
+        while not self.__stop_event.isSet():
+            self.__pause_event.wait()
+            if self.__stop_event.isSet():
+                break
+            name_set = set()
+            all_results = []
+            most_new_listing_time = None
+            for area in areas:
+                tsprint('Getting new listings for {}...'.format(area))
+                last_run = self.last_run if self.last_listing is None else self.last_listing
+                newest_listing_time, results = get_listings(
+                    last_run=last_run,
+                    area=areas[area],
+                    home_lat_long=self.home_lat_long,
+                    category='mca',
+                    filter=self.filter
+                )
+                if not most_new_listing_time or newest_listing_time > most_new_listing_time:
+                    most_new_listing_time = newest_listing_time
+                for r in results:
+                    if r['name'] not in name_set:
+                        tsprint("\t* Found result {}".format(r['name']))
+                        all_results.append(r)
+                        name_set.add(r['name'])
+                    else:
+                        tsprint('\tDiscarding duplicate {}'.format(r['name']))
+            all_results.sort(key=lambda r: r['created'])
+            self.last_run = datetime.now()
+            self.last_listing = most_new_listing_time
+            self.results_callback(all_results)
+            tsprint('Done!')
+            self.__stop_event.wait(self.interval.total_seconds())
+
+    def pause(self):
+        tsprint('Pausing!')
+        self.__pause_event.clear()
+
+    def unpause(self):
+        tsprint('Unpausing!')
+        self.__pause_event.set()
+
+    def join(self, timeout=None):
+        """set stop event and join within a given time period"""
+        self.__stop_event.set()
+        self.__pause_event.set()
+        super().join(timeout)
 
 
 if __name__ == '__main__':
