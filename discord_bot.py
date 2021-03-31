@@ -19,12 +19,9 @@ from datetime import timedelta
 
 client = discord.Client()
 logged_in = asyncio.Event()
+stale_channels = set()
 
 algebra = BooleanRuleAlgebra()
-
-# https://github.com/bastikr/boolean.py/issues/82
-algebra.TRUE.dual = type(algebra.FALSE)
-algebra.FALSE.dual = type(algebra.TRUE)
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -39,6 +36,8 @@ class ChannelNotifier():
     def __init__(self, channel):
         self.finished_init = asyncio.Event()
         self.channel = channel
+        self.channel_name = channel.name
+        self.channel_guild_name = channel.guild.name
         self.paused = True
         self.message_length = 1024
 
@@ -82,6 +81,14 @@ class ChannelNotifier():
         async def get_channel():
             await logged_in.wait()
             self.channel = client.get_channel(channel_id)
+            if self.channel is None:
+                tsprint('Channel {}#{} ({}) no longer exists. Deleting saved notifier for this channel.'.format(
+                    self.channel_guild_name, self.channel_name, channel_id))
+                stale_channels.add(channel_id)
+                self.finished_init.set()
+                return
+            self.channel_name = self.channel.name
+            self.channel_guild_name = self.channel.guild.name
             self.init_notifier()
             self.finished_init.set()
             tsprint('Loaded saved notifier for {}#{} ({})'.format(self.channel.guild.name, self.channel, channel_id))
@@ -222,12 +229,12 @@ async def cmd_status(message, _):
 
 @command(r'cln info')
 async def cmd_info(message, _):
-    # TODO
+    # TODO fix
     response = '{}, I found {} notifier{} currently enabled.'.format(
         message.author.mention, len(notifiers), '' if len(notifiers) == 1 else 's')
-    for channel, notifier in notifiers.items():
+    for channel_id, notifier in notifiers.items():
         response += '\n{}\n- Category: {}'.format(
-            channel.mention,
+            '<#{}>'.format(channel_id),
             '`{}`'.format(notifier.category) if notifier.category is not None else 'not set')
     await message.channel.send(response)
 
@@ -515,6 +522,15 @@ async def cmd_load(message, m):
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
     logged_in.set()
+    for notifier in notifiers.values():
+        await notifier.finished_init.wait()
+    for channel_id in stale_channels:
+        try:
+            del notifiers[channel_id]
+        except KeyError:
+            pass
+    stale_channels.clear()
+    save_notifiers()
 
 
 @client.event
