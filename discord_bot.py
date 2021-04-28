@@ -15,6 +15,7 @@ import asyncio
 import pickle
 import ast
 from datetime import timedelta
+from state_names import state_names
 
 
 client = discord.Client()
@@ -145,8 +146,11 @@ class ChannelNotifier():
         r['location'] = r['location'].split(', ')
         # sometimes street address is missing from geocode result, so town/state position in geocoded string varies
         try:
-            loc_mod = -1 if r['location'][5].isdigit() else 0
-            location = '{}, {}'.format(r['location'][3 + loc_mod], r['location'][5 + loc_mod])
+            state_idx = [i for i, e in enumerate(r['location']) if e in state_names][0]
+            if state_idx > 0:
+                location = '{}, {}'.format(r['location'][max(state_idx - 2, 0)], r['location'][state_idx])
+            else:
+                location = r['location'][state_idx]
         except Exception:
             location = r['location']
         description = '**{} - {} ({} mi. away)**\n\n{}'.format(r['price'], location, int(r['distance']), r['body'])

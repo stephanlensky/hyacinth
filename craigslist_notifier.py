@@ -63,37 +63,45 @@ def get_listings(last_run=None, area=areas['New England/New York'], category='ss
 
     results = []
     newest_listing_created = None
-    for result in cl_fs.get_results(sort_by='newest'):
-        if not newest_listing_created:
-            result2 = cl_fs.get_listing(result)
-            newest_listing_created = datetime.strptime(result2['created'], dt_fmt)
-        result['last_updated'] = datetime.strptime(result['last_updated'], dt_fmt)
-        if last_run and result['last_updated'] <= last_run:
-            result2 = cl_fs.get_listing(result)
-            result2['created'] = datetime.strptime(result2['created'], dt_fmt)
-            if result2['created'] <= last_run:
-                break
-        if filter and not filter(result):
-            tsprint('\tDiscarding {}'.format(result['name']))
-            continue
-        result = cl_fs.get_listing(result)
-        result['created'] = datetime.strptime(result['created'], dt_fmt)
+    for listing in cl_fs.get_results(sort_by='newest'):
+        try:
+            result = {}
+            if not newest_listing_created:
+                listing2 = cl_fs.get_listing(listing)
+                newest_listing_created = datetime.strptime(listing2['created'], dt_fmt)
+            listing['last_updated'] = datetime.strptime(listing['last_updated'], dt_fmt)
+            if last_run and listing['last_updated'] <= last_run:
+                listing2 = cl_fs.get_listing(listing)
+                listing2['created'] = datetime.strptime(listing2['created'], dt_fmt)
+                if listing2['created'] <= last_run:
+                    break
+            if filter and not filter(listing):
+                tsprint('\tDiscarding {}'.format(listing['name']))
+                continue
+            listing = cl_fs.get_listing(listing)
+            result['created'] = datetime.strptime(listing['created'], dt_fmt)
+            result['url'] = listing['url']
+            result['body'] = listing['body']
+            result['images'] = listing['images']
+            result['name'] = listing['name']
+            result['price'] = listing['price']
 
-        # if there is no location provided, use the lat/long of the craigslist site
-        # this is probably a city, e.g. providence, albany, etc.
-        if not result['geotag']:
-            site = re.match(r'http(s)?://(www\.)?(.+)\.craigslist', result['url']).groups()[2]
-            result['geotag'] = areas_reference[site]['Latitude'], areas_reference[site]['Longitude']
-            print(result['geotag'])
+            # if there is no location provided, use the lat/long of the craigslist site
+            # this is probably a city, e.g. providence, albany, etc.
+            if not listing['geotag']:
+                site = re.match(r'http(s)?://(www\.)?(.+)\.craigslist', listing['url']).groups()[2]
+                listing['geotag'] = areas_reference[site]['Latitude'], areas_reference[site]['Longitude']
 
-        result['distance'] = geodesic(home_lat_long, result['geotag']).miles
-        location = geolocator.reverse(str(result['geotag'])[1:-1])
-        if location:
-            result['location'] = location.address
-        else:  # protects against users putting in lat/long in places that can't be geocoded, like the ocean
-            result['location'] = str(result['geotag'])[1:-1]
-        time.sleep(1)  # to comply with geocoder api limit
-        results.append(result)
+            result['distance'] = geodesic(home_lat_long, listing['geotag']).miles
+            location = geolocator.reverse(str(listing['geotag'])[1:-1])
+            if location:
+                result['location'] = location.address
+            else:  # protects against users putting in lat/long in places that can't be geocoded, like the ocean
+                result['location'] = str(listing['geotag'])[1:-1]
+            time.sleep(1)  # to comply with geocoder api limit
+            results.append(result)
+        except KeyError:
+            tsprint("ERROR PARSING LISTING, SKIPPING: {}".format(listing))
     return newest_listing_created, results
 
 
