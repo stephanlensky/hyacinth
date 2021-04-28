@@ -64,6 +64,7 @@ def get_listings(last_run=None, area=areas['New England/New York'], category='ss
     results = []
     newest_listing_created = None
     for listing in cl_fs.get_results(sort_by='newest'):
+        listing2 = None
         try:
             result = {}
             if not newest_listing_created:
@@ -100,8 +101,11 @@ def get_listings(last_run=None, area=areas['New England/New York'], category='ss
                 result['location'] = str(listing['geotag'])[1:-1]
             time.sleep(1)  # to comply with geocoder api limit
             results.append(result)
-        except KeyError:
-            tsprint("ERROR PARSING LISTING, SKIPPING: {}".format(listing))
+        except KeyError as e:
+            print(e)
+            tsprint('ERROR PARSING LISTING, SKIPPING')
+            tsprint('listing: {}'.format(listing))
+            tsprint('listing2: {}'.format(listing2))
     return newest_listing_created, results
 
 
