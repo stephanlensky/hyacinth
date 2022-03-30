@@ -691,7 +691,7 @@ async def on_message(message):
             break
 
 
-if __name__ == "__main__":
+def main():
     shelf = shelve.open("bot_storage")
     if "notifiers" in shelf:
         notifiers = shelf["notifiers"]

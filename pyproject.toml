@@ -37,8 +37,8 @@ include = [
     "LICENSE",
 ]
 
-# [tool.poetry.scripts]
-# amt = "apple_music_tools.main:app"
+[tool.poetry.scripts]
+amt = "notifier_bot.discord_bot:main"
 
 [tool.poetry.dependencies]
 python = "^3.9"
