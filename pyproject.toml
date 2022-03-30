@@ -36,9 +36,12 @@ repository = "https://github.com/stephanlensky/marketplace-notifier-bot"
 include = [
     "LICENSE",
 ]
+packages = [
+    {include = "notifier_bot"}
+]
 
 [tool.poetry.scripts]
-amt = "notifier_bot.discord_bot:main"
+notifier-bot = "notifier_bot.discord_bot:main"
 
 [tool.poetry.dependencies]
 python = "^3.9"

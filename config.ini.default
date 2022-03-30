@@ -1,3 +1,2 @@
-[slack.com]
-slack-playground = webhook url goes here
-bikes-2020 = webhook url goes here
+[discord]
+token=

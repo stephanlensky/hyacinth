@@ -17,7 +17,7 @@ def tsprint(msg, **kwargs):
     print(f"{ts} {msg}", **kwargs)
 
 
-def get_craigslist_areas(config_path="craigslist.ini"):
+def get_craigslist_areas(config_path=Path("craigslist_areas.ini")):
     cl_config = configparser.ConfigParser()
     cl_config.read(config_path)
     areas = {}
