@@ -36,6 +36,12 @@ affirmations = ["Okay", "Sure", "Sounds good", "No problem"]
 
 craigslist = None
 
+shelf = shelve.open("bot_storage")
+if "notifiers" in shelf:
+    notifiers = shelf["notifiers"]
+else:
+    notifiers = OrderedDict()
+
 
 class ChannelNotifier:
     def __init__(self, channel):
@@ -692,9 +698,4 @@ async def on_message(message):
 
 
 def main():
-    shelf = shelve.open("bot_storage")
-    if "notifiers" in shelf:
-        notifiers = shelf["notifiers"]
-    else:
-        notifiers = OrderedDict()
     client.run(token)
