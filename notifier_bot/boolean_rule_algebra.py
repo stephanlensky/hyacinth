@@ -1,9 +1,19 @@
-from boolean import *
-import boolean
+from boolean import (
+    TOKEN_AND,
+    TOKEN_FALSE,
+    TOKEN_LPAR,
+    TOKEN_NOT,
+    TOKEN_OR,
+    TOKEN_RPAR,
+    TOKEN_SYMBOL,
+    TOKEN_TRUE,
+    BooleanAlgebra,
+    ParseError,
+    boolean,
+)
 
 
 class BooleanRuleAlgebra(BooleanAlgebra):
-
     def tokenize(self, expr):
         """
         Return an iterable of 3-tuple describing each token given an expression
@@ -43,20 +53,29 @@ class BooleanRuleAlgebra(BooleanAlgebra):
             - True symbols: 1 and True
             - False symbols: 0, False and None
         """
-        if not isinstance(expr, boolean.boolean.basestring):
-            raise TypeError('expr must be string but it is %s.' % type(expr))
+        if not isinstance(expr, boolean.basestring):
+            raise TypeError(f"expr must be string but it is {type(expr)}.")
 
         # mapping of lowercase token strings to a token type id for the standard
         # operators, parens and common true or false symbols, as used in the
         # default tokenizer implementation.
         TOKENS = {
-            '*': TOKEN_AND, '&': TOKEN_AND, 'and': TOKEN_AND,
-            '+': TOKEN_OR, '|': TOKEN_OR, 'or': TOKEN_OR,
-            '~': TOKEN_NOT, '!': TOKEN_NOT, 'not': TOKEN_NOT,
-            '(': TOKEN_LPAR, ')': TOKEN_RPAR,
-            '[': TOKEN_LPAR, ']': TOKEN_RPAR,
-            'true': TOKEN_TRUE, 'false': TOKEN_FALSE,
-            'none': TOKEN_FALSE
+            "*": TOKEN_AND,
+            "&": TOKEN_AND,
+            "and": TOKEN_AND,
+            "+": TOKEN_OR,
+            "|": TOKEN_OR,
+            "or": TOKEN_OR,
+            "~": TOKEN_NOT,
+            "!": TOKEN_NOT,
+            "not": TOKEN_NOT,
+            "(": TOKEN_LPAR,
+            ")": TOKEN_RPAR,
+            "[": TOKEN_LPAR,
+            "]": TOKEN_RPAR,
+            "true": TOKEN_TRUE,
+            "false": TOKEN_FALSE,
+            "none": TOKEN_FALSE,
         }
         tokens = []
 
@@ -66,7 +85,7 @@ class BooleanRuleAlgebra(BooleanAlgebra):
         while position < length:
             tok = expr[position]
 
-            sym = tok.isalnum() or tok == '_'
+            sym = tok.isalnum() or tok == "_"
             if sym:
                 position += 1
                 while position < length:
@@ -80,12 +99,13 @@ class BooleanRuleAlgebra(BooleanAlgebra):
 
             try:
                 tokens.append((TOKENS[tok.lower()], tok, position))
-            except KeyError:
+            except KeyError as e:
                 if sym:
                     tokens.append((TOKEN_SYMBOL, tok, position))
-                elif tok not in (' ', '\t', '\r', '\n'):
-                    raise ParseError(token_string=tok, position=position,
-                                     error_code=boolean.boolean.PARSE_UNKNOWN_TOKEN)
+                elif tok not in (" ", "\t", "\r", "\n"):
+                    raise ParseError(
+                        token_string=tok, position=position, error_code=boolean.PARSE_UNKNOWN_TOKEN
+                    ) from e
 
             position += 1
 
@@ -96,13 +116,13 @@ class BooleanRuleAlgebra(BooleanAlgebra):
                 continue
 
             pos = tokens[i][2]
-            new_token = ''
+            new_token = ""
             j = i - 1
             while j >= 0 and tokens[j][1] not in TOKENS:
-                new_token = tokens[j + 1][1] + ' ' + new_token
+                new_token = tokens[j + 1][1] + " " + new_token
                 tokens.pop(j + 1)
                 j -= 1
-            new_token = (tokens[j + 1][1] + ' ' + new_token)[:-1]
+            new_token = (tokens[j + 1][1] + " " + new_token)[:-1]
             tokens.pop(j + 1)
 
             tokens.insert(j + 1, (TOKEN_SYMBOL, new_token, pos))
