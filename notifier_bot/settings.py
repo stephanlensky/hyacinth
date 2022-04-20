@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     craigslist_areas_reference_json_path: Path = Path("craigslist_areas.json")
     craigslist_areas_ini_path: Path = Path("craigslist_areas.ini")
 
+    craigslist_poll_interval_seconds: int = 600
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

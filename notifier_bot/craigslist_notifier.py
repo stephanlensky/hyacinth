@@ -12,7 +12,7 @@ from geopy.distance import geodesic
 from geopy.geocoders import Nominatim
 
 
-def tsprint(msg, **kwargs):
+def tsprint(msg, **kwargs) -> None:
     ts = datetime.now().strftime("[%H:%M:%S]")
     print(f"{ts} {msg}", **kwargs)
 

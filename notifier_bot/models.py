@@ -1,6 +1,20 @@
 from datetime import datetime
+from enum import Enum
+from typing import Any
 
-from pydantic import BaseModel, Field
+from boolean import Expression
+from pydantic import BaseModel, Field, StrictBool, StrictFloat, StrictInt, StrictStr, validator
+
+PARAM_VALUE_TYPES = StrictStr | StrictInt | StrictFloat | StrictBool
+
+
+class HashableBaseModel(BaseModel):
+    def __hash__(self) -> int:
+
+        return hash((type(self),) + tuple(self.__dict__.values()))
+
+    class Config:
+        allow_mutation = False
 
 
 class CraigslistArea(BaseModel):
@@ -31,3 +45,29 @@ class Listing(BaseModel):
     distance_miles: float
     created_at: datetime
     updated_at: datetime
+
+
+class SearchSpecSource(str, Enum):
+    CRAIGSLIST = "craigslist"
+
+
+class SearchSpec(HashableBaseModel):
+    source: SearchSpecSource
+    # use a frozenset of key-value pairs instead of a dict so the model can be hashed
+    search_params: frozenset[tuple[str, PARAM_VALUE_TYPES]]
+
+    @validator("search_params", pre=True)
+    @classmethod
+    def search_param_dict_to_frozenset(cls, v: Any) -> frozenset:
+        if isinstance(v, dict):
+            return frozenset(v.items())
+        return v
+
+
+class FilterRules(BaseModel):
+    rules: list[tuple[str, Expression]] = []  # list of tuples (original user rule str, Expression)
+    preremoval_rules: list[str] = []  # remove these words before applying rules
+    disallowed_words: list[str] = []  # auto fail any listing with these words
+
+    class Config:
+        arbitrary_types_allowed = True

@@ -14,7 +14,7 @@ from boolean import (
 
 
 class BooleanRuleAlgebra(BooleanAlgebra):
-    def tokenize(self, expr):
+    def tokenize(self, expr: boolean.basestring) -> list:
         """
         Return an iterable of 3-tuple describing each token given an expression
         unicode string.
