@@ -1,8 +1,5 @@
-# credentials
-config.ini
-
-# debug sample data
-samples/
+# local storage
+/database.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

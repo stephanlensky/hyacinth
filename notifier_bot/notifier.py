@@ -49,8 +49,9 @@ class ListingNotifier(ABC):
     def _start_notification_task(
         self, loop: asyncio.AbstractEventLoop | None = None
     ) -> asyncio.Task:
+        _logger.debug("Starting notifier task!")
         if loop is None:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
         return loop.create_task(self._notify_new_listings_loop())
 
     async def _notify_new_listings_loop(self) -> None:
@@ -62,11 +63,15 @@ class ListingNotifier(ABC):
                     listings.extend(
                         await self.monitor.get_listings(search, after_time=self.last_notified)
                     )
+                _logger.debug(
+                    f"Found {len(listings)} to notify for across {len(self.active_searches)} active"
+                    " searches"
+                )
                 listings.sort(key=lambda l: l.updated_at)
 
                 not_yet_notified_listings = listings.copy()
                 for listing in listings:
-                    await self._notify(listing)
+                    await self.notify(listing)
                     not_yet_notified_listings.remove(listing)
                 self.last_notified = datetime.now()
 
@@ -80,15 +85,15 @@ class ListingNotifier(ABC):
                         f" {len(not_yet_notified_listings)} listings before cancelling."
                     )
                 for listing in not_yet_notified_listings:
-                    await self._notify(listing)
+                    await self.notify(listing)
                 self.last_notified = datetime.now()
                 break
 
     @abstractmethod
-    async def _notify(self, listing: Listing) -> None:
+    async def notify(self, listing: Listing) -> None:
         pass
 
 
 class LoggerNotifier(ListingNotifier):
-    async def _notify(self, listing: Listing) -> None:
+    async def notify(self, listing: Listing) -> None:
         _logger.info(f"Notify listing {listing}")

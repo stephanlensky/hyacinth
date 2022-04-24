@@ -15,7 +15,7 @@ packages = [
 ]
 
 [tool.poetry.scripts]
-notifier-bot = "notifier_bot.discord_bot:main"
+notifier-bot = "notifier_bot.discord_bot:run"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -27,6 +27,7 @@ geopy = "^2.2.0"
 python-dateutil = "^2.8.2"
 playwright = "^1.20.1"
 pydantic = {extras = ["dotenv"], version = "^1.9.0"}
+SQLAlchemy = "^1.4.35"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"
@@ -38,6 +39,7 @@ mypy = "^0.942"
 pylint = "^2.13.3"
 docformatter = "^1.4"
 types-requests = "^2.27.15"
+SQLAlchemy = {extras = ["mypy"], version = "^1.4.35"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -60,6 +62,7 @@ line-length = 100
 [tool.mypy]
 show_column_numbers = true
 disallow_untyped_defs = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
 
 [[tool.mypy.overrides]]
 module = [
