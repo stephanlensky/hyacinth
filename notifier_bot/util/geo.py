@@ -24,7 +24,6 @@ def reverse_geotag(geotag: tuple[float, float]) -> Location:
     state_component = next(
         filter(lambda c: "administrative_area_level_1" in c["types"], address_components), None
     )
-    print(address_components)
     return Location(
         city=city_component["long_name"] if city_component else None,
         state=state_component["long_name"] if state_component else None,

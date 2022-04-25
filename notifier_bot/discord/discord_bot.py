@@ -16,6 +16,7 @@ from notifier_bot.models import SearchSpecSource
 from notifier_bot.monitor import MarketplaceMonitor
 from notifier_bot.notifier import DiscordNotifier
 from notifier_bot.settings import get_settings
+from notifier_bot.util.craigslist import get_areas
 
 settings = get_settings()
 _logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ _logger = logging.getLogger(__name__)
 _discord_notifier_bot_commands: dict[Pattern, Callable] = {}
 
 AFFIRMATIONS = ["Okay", "Sure", "Sounds good", "No problem", "Roger that", "Got it"]
+DEBUG_COMMAND_PREFIX = r"(d|debug) "
 
 
 class DiscordNotifierBot:
@@ -30,16 +32,12 @@ class DiscordNotifierBot:
         self,
         client: discord.Client,
         command_prefix: str | None = "$",
-        loop: AbstractEventLoop | None = None,
     ) -> None:
-        if loop is None:
-            loop = asyncio.get_running_loop()
 
         self.client = client
         self.command_prefix = command_prefix
-        self.loop = loop
 
-        self.monitor = MarketplaceMonitor(self.loop)
+        self.monitor = MarketplaceMonitor()
         self.notifiers: dict[int, DiscordNotifier] = {}  # channel ID -> notifier
         self.active_threads: dict[int, ThreadBasedSetupHandler] = {}  # thread ID -> setup handler
 
@@ -140,13 +138,38 @@ class DiscordNotifierBot:
         self.active_threads[thread.id] = notifier_setup_handler
         await notifier_setup_handler.send_first_message()
 
+    @command(
+        rf"{DEBUG_COMMAND_PREFIX}notify-with-params (?P<source_name>.+?) (?P<params>(\w+=\w+ ?)+)"
+    )
+    async def debug_create_notifier_from_params(self, message: Message, command: re.Match) -> None:
+        source_name: str = command.group("source_name").lower()
+        params: dict[str, str] = dict((p.split("=") for p in command.group("params").split(" ")))
+        _logger.info(f"Creating notifier from params source={source_name} params={params}")
+        notifier_setup_handler = CraigslistSetupHandler(
+            self,
+            message.channel,
+            None,  # type: ignore
+            message.author,
+            self.notifiers.get(message.channel.id, None),
+        )
+        notifier_setup_handler.area = get_areas()[list(get_areas())[int(params["area"])]]
+        notifier_setup_handler.category = params["category"]
+        notifier_setup_handler.min_price = int(params["min_price"])
+        notifier_setup_handler.max_price = int(params["max_price"])
+        notifier_setup_handler.max_distance_miles = int(params["max_distance_miles"])
+        notifier_setup_handler.create_search()
+
+        await message.channel.send(
+            f"```Created notifier from params source={source_name} params={params}```"
+        )
+
 
 def run() -> None:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     intents = discord.Intents(messages=True, guild_messages=True, message_content=True, guilds=True)
     client = discord.Client(intents=intents, loop=loop)
-    discord_bot: DiscordNotifierBot = DiscordNotifierBot(client, loop=loop)
+    discord_bot: DiscordNotifierBot = DiscordNotifierBot(client)
 
     @client.event
     async def on_ready() -> None:

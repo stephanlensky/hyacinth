@@ -176,6 +176,7 @@ class CraigslistSetupHandler(ThreadBasedSetupHandler):
                 "All done! I will configure the notifier for you now. This thread can be safely"
                 " deleted."
             )
+            await self.thread.edit(archived=True)
 
             # configuration is done, create the notifier/register search
             self.create_search()
@@ -203,11 +204,11 @@ class CraigslistSetupHandler(ThreadBasedSetupHandler):
             ).dict(),
         )
         if self.notifier is None:
-            logging.info(f"Creating notifier for channel {self.channel.id}")
-            self.discord_bot.notifiers[self.thread.parent_id] = DiscordNotifier(
+            _logger.info(f"Creating notifier for channel {self.channel.id}")
+            self.discord_bot.notifiers[self.channel.id] = DiscordNotifier(
                 self.channel, self.discord_bot.monitor, notification_frequency=timedelta(minutes=1)
             )
-            self.notifier = self.discord_bot.notifiers[self.thread.parent_id]
+            self.notifier = self.discord_bot.notifiers[self.channel.id]
         self.notifier.create_search(search_spec)
 
         self.done = True

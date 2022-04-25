@@ -57,7 +57,6 @@ class SearchSpec(HashableBaseModel):
     @validator("search_params", pre=True)
     @classmethod
     def search_param_dict_to_frozenset(cls, v: Any) -> frozenset:
-        print(v)
         if isinstance(v, dict):
             return frozenset(v.items())
         return v

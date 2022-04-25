@@ -14,7 +14,7 @@ _logger = logging.getLogger(__name__)
 
 class MarketplaceMonitor:
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None) -> None:
-        self.search_spec_source_mapping: dict[SearchSpec, ListingSource]
+        self.search_spec_source_mapping: dict[SearchSpec, ListingSource] = {}
         self.loop = loop
 
     def register_search(self, search_spec: SearchSpec) -> None:
@@ -45,6 +45,7 @@ class MarketplaceMonitor:
     ) -> asyncio.Task:
         if loop is None:
             loop = asyncio.get_running_loop()
+        print(loop)
         return loop.create_task(self._poll_loop(source, search_spec))
 
     async def _poll_loop(self, source: ListingSource, search_spec: SearchSpec) -> None:
