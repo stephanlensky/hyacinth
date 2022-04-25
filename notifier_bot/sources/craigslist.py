@@ -22,7 +22,7 @@ CRAIGSLIST_DATE_FORMAT = "%Y-%m-%d %H:%M"
 
 class CraigslistSearchParams(BaseModel):
     site: str
-    nearby_areas: frozenset[str]
+    nearby_areas: tuple[str, ...]
     category: str
     home_lat_long: tuple[float, float]
     min_price: int | None = None
@@ -31,8 +31,8 @@ class CraigslistSearchParams(BaseModel):
 
     @validator("nearby_areas", pre=True)
     @classmethod
-    def nearby_areas_list_to_frozenset(cls, v: Any) -> frozenset:
-        return frozenset(v)
+    def nearby_areas_list_to_tuple(cls, v: Any) -> tuple:
+        return tuple(v)
 
 
 class CraigslistSource(ListingSource):
@@ -73,10 +73,10 @@ class CraigslistSource(ListingSource):
             ):
                 _logger.debug(f"Skipping further than max distance listing {listing.title}")
                 continue
-            if listing.created_at < after_time:
+            if listing.created_at <= after_time:
                 break
 
-            _logger.debug(f"Found listing {listing.title}")
+            _logger.debug(f"Found listing {listing.title} at {listing.created_at}")
             listings.append(listing)
 
         return listings

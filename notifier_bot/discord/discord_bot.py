@@ -151,7 +151,7 @@ class DiscordNotifierBot:
             message.author,
             self.notifiers.get(message.channel.id, None),
         )
-        notifier_setup_handler.area = get_areas()[list(get_areas())[int(params["area"])]]
+        notifier_setup_handler.area = get_areas()[list(get_areas())[int(params["area"]) - 1]]
         notifier_setup_handler.category = params["category"]
         notifier_setup_handler.min_price = int(params["min_price"])
         notifier_setup_handler.max_price = int(params["max_price"])

@@ -51,14 +51,15 @@ class SearchSpecSource(str, Enum):
 
 class SearchSpec(HashableBaseModel):
     source: SearchSpecSource
-    # use a frozenset of key-value pairs instead of a dict so the model can be hashed
-    search_params: frozenset[tuple[str, Any]]
+    # use a tuple of key-value pairs instead of a dict so the model can be hashed
+    search_params: tuple[tuple[str, Any], ...]
 
     @validator("search_params", pre=True)
     @classmethod
-    def search_param_dict_to_frozenset(cls, v: Any) -> frozenset:
+    def search_param_dict_to_tuple(cls, v: Any) -> tuple:
         if isinstance(v, dict):
-            return frozenset(v.items())
+            sorted_items = sorted(v.items(), key=lambda i: i[0])
+            return tuple(sorted_items)
         return v
 
 
