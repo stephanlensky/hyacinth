@@ -4,7 +4,6 @@ import asyncio
 import logging
 import random
 import re
-from asyncio import AbstractEventLoop
 from typing import Any, Callable, Pattern
 
 import discord
