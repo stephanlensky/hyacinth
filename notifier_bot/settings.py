@@ -6,6 +6,8 @@ from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     log_level: int = logging.DEBUG
+    log_format: str = "%(asctime)s [%(process)d] [%(levelname)s] %(name)-16s %(message)s"
+    log_date_format: str = "%Y-%m-%d %H:%M:%S"
 
     sqlite_db_path: str = "database.db"
 
@@ -17,6 +19,11 @@ class Settings(BaseSettings):
     craigslist_poll_interval_seconds: int = 600
 
     discord_token: str
+
+    # eventually this should be configured on a per-notifier basis
+    # just set it as a constant for now
+    # note for intrepid data miners: this is the MA state house, not my actual home address :)
+    home_lat_long: tuple[float, float] = (42.35871993931778, -71.06382445970375)
 
     class Config:
         env_file = ".env"

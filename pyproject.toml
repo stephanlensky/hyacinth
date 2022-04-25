@@ -15,19 +15,20 @@ packages = [
 ]
 
 [tool.poetry.scripts]
-notifier-bot = "notifier_bot.discord_bot:run"
+notifier-bot = "notifier_bot.discord.discord_bot:run"
 
 [tool.poetry.dependencies]
 python = "^3.10"
 requests = "^2.27.1"
 "boolean.py" = "^3.8"
-"discord.py" = "^1.7.3"
+"discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "277d35c" }
 python-craigslist = { git = "git@github.com:stephanlensky/python-craigslist.git" }
 geopy = "^2.2.0"
 python-dateutil = "^2.8.2"
 playwright = "^1.20.1"
 pydantic = {extras = ["dotenv"], version = "^1.9.0"}
 SQLAlchemy = "^1.4.35"
+wrapt = "^1.14.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"
@@ -69,7 +70,8 @@ module = [
     "craigslist",
     "geopy.*",
     "boolean",
-    "discord"
+    "discord",
+    "wrapt"
 ]
 ignore_missing_imports = true
 

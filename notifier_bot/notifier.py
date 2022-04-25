@@ -2,9 +2,13 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from notifier_bot.models import Listing, SearchSpec
 from notifier_bot.monitor import MarketplaceMonitor
+
+if TYPE_CHECKING:
+    from discord.abc import MessageableChannel
 
 _logger = logging.getLogger(__name__)
 
@@ -97,3 +101,20 @@ class ListingNotifier(ABC):
 class LoggerNotifier(ListingNotifier):
     async def notify(self, listing: Listing) -> None:
         _logger.info(f"Notify listing {listing}")
+
+
+class DiscordNotifier(ListingNotifier):
+    def __init__(
+        self,
+        channel: "MessageableChannel",
+        monitor: MarketplaceMonitor,
+        notification_frequency: timedelta = timedelta(minutes=10),
+        paused: bool = False,
+        last_notified: datetime | None = None,
+        loop: asyncio.AbstractEventLoop | None = None,
+    ) -> None:
+        super().__init__(monitor, notification_frequency, paused, last_notified, loop)
+        self.channel = channel
+
+    async def notify(self, listing: Listing) -> None:
+        await self.channel.send(f"{listing}")

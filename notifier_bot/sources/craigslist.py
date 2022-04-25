@@ -6,9 +6,9 @@ from datetime import datetime
 from typing import Any
 
 from craigslist import CraigslistForSale
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
-from notifier_bot.models import CraigslistArea, Listing
+from notifier_bot.models import Listing
 from notifier_bot.settings import get_settings
 from notifier_bot.sources.abc import ListingSource
 from notifier_bot.util.craigslist import get_geotag_from_url
@@ -21,12 +21,18 @@ CRAIGSLIST_DATE_FORMAT = "%Y-%m-%d %H:%M"
 
 
 class CraigslistSearchParams(BaseModel):
-    area: CraigslistArea
+    site: str
+    nearby_areas: frozenset[str]
     category: str
     home_lat_long: tuple[float, float]
     min_price: int | None = None
     max_price: int | None = None
     max_distance_miles: float | None = None
+
+    @validator("nearby_areas", pre=True)
+    @classmethod
+    def nearby_areas_list_to_frozenset(cls, v: Any) -> frozenset:
+        return frozenset(v)
 
 
 class CraigslistSource(ListingSource):
@@ -40,7 +46,7 @@ class CraigslistSource(ListingSource):
     def get_craigslist_client(self) -> CraigslistForSale:
         filters = {
             "search_nearby": 2,
-            "nearby_area": self.search_params.area.nearby_areas,
+            "nearby_area": self.search_params.nearby_areas,
         }
         if self.search_params.min_price is not None:
             filters["min_price"] = self.search_params.min_price
@@ -48,7 +54,7 @@ class CraigslistSource(ListingSource):
             filters["max_price"] = self.search_params.max_price
 
         return CraigslistForSale(
-            site=self.search_params.area.site,
+            site=self.search_params.site,
             category=self.search_params.category,
             filters=filters,
         )

@@ -32,7 +32,7 @@ class MarketplaceMonitor:
     def _make_source(search_spec: SearchSpec) -> ListingSource:
         if search_spec.source == SearchSpecSource.CRAIGSLIST:
             return CraigslistSource(
-                CraigslistSearchParams(**dict(search_spec.search_params)),
+                CraigslistSearchParams.parse_obj(dict(search_spec.search_params)),
             )
 
         raise NotImplementedError(f"{search_spec.source} not implemented")
@@ -62,7 +62,7 @@ class MarketplaceMonitor:
             try:
                 listings = await source.get_listings(after_time=start_time)
                 _logger.debug(
-                    f"Found {len(listings)} since f{start_time} for search_spec={search_spec}"
+                    f"Found {len(listings)} since {start_time} for search_spec={search_spec}"
                 )
                 save_listings_to_db(search_spec, listings)
                 await asyncio.sleep(source.recommended_polling_interval)

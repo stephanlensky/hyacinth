@@ -3,9 +3,7 @@ from enum import Enum
 from typing import Any
 
 from boolean import Expression
-from pydantic import BaseModel, Field, StrictBool, StrictFloat, StrictInt, StrictStr, validator
-
-PARAM_VALUE_TYPES = StrictStr | StrictInt | StrictFloat | StrictBool
+from pydantic import BaseModel, Field, validator
 
 
 class HashableBaseModel(BaseModel):
@@ -54,11 +52,12 @@ class SearchSpecSource(str, Enum):
 class SearchSpec(HashableBaseModel):
     source: SearchSpecSource
     # use a frozenset of key-value pairs instead of a dict so the model can be hashed
-    search_params: frozenset[tuple[str, PARAM_VALUE_TYPES]]
+    search_params: frozenset[tuple[str, Any]]
 
     @validator("search_params", pre=True)
     @classmethod
     def search_param_dict_to_frozenset(cls, v: Any) -> frozenset:
+        print(v)
         if isinstance(v, dict):
             return frozenset(v.items())
         return v
