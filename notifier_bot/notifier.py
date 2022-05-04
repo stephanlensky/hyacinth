@@ -20,7 +20,6 @@ class ListingNotifier(ABC):
         notification_frequency: timedelta = timedelta(minutes=10),
         paused: bool = False,
         last_notified: datetime | None = None,
-        loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         self.monitor = monitor
         self.notification_frequency: timedelta = notification_frequency
@@ -29,10 +28,8 @@ class ListingNotifier(ABC):
             self.last_notified = datetime.now()
         self.paused = paused
         self.active_searches: list[SearchSpec] = []
-
-        self._loop = loop
         self._notification_task: asyncio.Task | None = (
-            self._start_notification_task(loop) if not self.paused else None
+            self._start_notification_task() if not self.paused else None
         )
 
     def create_search(self, search_spec: SearchSpec) -> None:
@@ -48,14 +45,13 @@ class ListingNotifier(ABC):
     def unpause(self) -> None:
         self.paused = False
         if self._notification_task is None:
-            self._notification_task = self._start_notification_task(self._loop)
+            self._notification_task = self._start_notification_task()
 
     def _start_notification_task(
-        self, loop: asyncio.AbstractEventLoop | None = None
+        self,
     ) -> asyncio.Task:
         _logger.debug("Starting notifier task!")
-        if loop is None:
-            loop = asyncio.get_running_loop()
+        loop = asyncio.get_running_loop()
         return loop.create_task(self._notify_new_listings_loop())
 
     async def _notify_new_listings_loop(self) -> None:
@@ -111,9 +107,8 @@ class DiscordNotifier(ListingNotifier):
         notification_frequency: timedelta = timedelta(minutes=10),
         paused: bool = False,
         last_notified: datetime | None = None,
-        loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
-        super().__init__(monitor, notification_frequency, paused, last_notified, loop)
+        super().__init__(monitor, notification_frequency, paused, last_notified)
         self.channel = channel
 
     async def notify(self, listing: Listing) -> None:

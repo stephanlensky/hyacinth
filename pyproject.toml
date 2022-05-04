@@ -15,7 +15,7 @@ packages = [
 ]
 
 [tool.poetry.scripts]
-notifier-bot = "notifier_bot.discord.discord_bot:run"
+notifier-bot = "notifier_bot._entry:run_discord_bot"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -29,6 +29,7 @@ playwright = "^1.20.1"
 pydantic = {extras = ["dotenv"], version = "^1.9.0"}
 SQLAlchemy = "^1.4.35"
 wrapt = "^1.14.0"
+anyio = "^3.5.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"

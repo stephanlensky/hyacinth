@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 from typing import Any
 
+import anyio
 from craigslist import CraigslistForSale
 from pydantic import BaseModel, validator
 
@@ -60,6 +61,10 @@ class CraigslistSource(ListingSource):
         )
 
     async def get_listings(self, after_time: datetime, limit: int | None = None) -> list[Listing]:
+        listings = await anyio.to_thread.run_sync(self._sync_get_listings, after_time, limit)
+        return listings
+
+    def _sync_get_listings(self, after_time: datetime, limit: int | None = None) -> list[Listing]:
         cl_client = self.get_craigslist_client()
         listings = []
         for search_result in cl_client.get_results(sort_by="newest", limit=limit):

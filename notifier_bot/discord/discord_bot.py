@@ -163,9 +163,9 @@ class DiscordNotifierBot:
         )
 
 
-def run() -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+async def run() -> None:
+    loop = asyncio.get_running_loop()
+
     intents = discord.Intents(messages=True, guild_messages=True, message_content=True, guilds=True)
     client = discord.Client(intents=intents, loop=loop)
     discord_bot: DiscordNotifierBot = DiscordNotifierBot(client)
@@ -178,4 +178,4 @@ def run() -> None:
     async def on_message(message: Message) -> None:
         await discord_bot.on_message(message)
 
-    client.run(settings.discord_token)
+    await client.start(settings.discord_token)
