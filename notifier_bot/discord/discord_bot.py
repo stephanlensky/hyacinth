@@ -111,7 +111,7 @@ class DiscordNotifierBot:
 
         return deco
 
-    def affirmation(self) -> str:
+    def affirm(self) -> str:
         return random.choice(AFFIRMATIONS)
 
     def thank(self) -> str:
@@ -156,7 +156,7 @@ class DiscordNotifierBot:
                 raise
 
             await message.channel.send(
-                f"{self.affirmation()} {message.author.mention}, I've created a notifier for you"
+                f"{self.affirm()} {message.author.mention}, I've created a notifier for you"
                 f" based on following parameters:\n```{params}```"
             )
 
