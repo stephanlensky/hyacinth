@@ -8,6 +8,8 @@ settings = get_settings()
 
 credentials = f"{settings.postgres_user}:{settings.postgres_password}"
 host = f"db:5432/{settings.postgres_user}"
-engine = create_engine(f"postgresql+psycopg2://{credentials}@{host}", future=True)
+connection_string = f"postgresql://{credentials}@{host}"
+
+engine = create_engine(f"postgresql://{credentials}@{host}", future=True)
 Session = sessionmaker(engine)
 Base.metadata.create_all(engine)

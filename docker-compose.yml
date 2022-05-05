@@ -17,6 +17,10 @@ services:
       - db
       - redis
 
+  worker:
+    <<: *service
+    command: ["/bin/sh", "docker/worker-docker-entrypoint.sh"]
+
   db:
     image: postgres
     env_file:
