@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  redis:
+    env_file:
+      - ".env"
+    image: "redis:7.0.0"
+    restart: "unless-stopped"
+    stop_grace_period: "2s"
+    volumes:
+      - "redis:/data"
+
+  service: &service
+    env_file:
+      - ".env"
+    build:
+      dockerfile: ./docker/service.dockerfile
+      context: .
+    stop_grace_period: "2s"
+    volumes:
+      - ./:/app
+    links:
+      - redis
+    depends_on:
+      - redis
+
+  devbox:
+    <<: *service
+    entrypoint: /bin/bash
+    stdin_open: true
+    tty: true
+
+volumes:
+  redis:
