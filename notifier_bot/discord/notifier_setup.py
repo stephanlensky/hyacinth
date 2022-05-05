@@ -60,7 +60,7 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
                         "What is the maximum distance away (in miles) that you would like to show"
                         " results for?"
                     ),
-                    validator=lambda m: int(m.content),
+                    validator=int,
                 ),
             ],
         )
@@ -73,7 +73,8 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
                 f"Sorry {FMT_USER}! Something went wrong while configuring the notifier for this"
                 f" channel. ```{traceback.format_exc()}```"
             )
-            return await super().finish()
+            await super().finish()
+            raise
 
         await self.send(
             f"{self.bot.thank()} {FMT_USER}! I've set up a notifier for new Craigslist listings on"
@@ -83,11 +84,11 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
         return await super().finish()
 
     def configure_notifier(self) -> None:
-        search_params = dict(self.answers)
-        area = get_areas()[self.answers.pop("area")]
+        search_params = dict(self._answers)
+        area = get_areas()[search_params.pop("area")]
         search_params["site"] = area.site
         search_params["nearby_areas"] = area.nearby_areas
-        search_params["min_price"], search_params["max_price"] = self.answers.pop("price_range")
+        search_params["min_price"], search_params["max_price"] = search_params.pop("price_range")
         search_params["home_lat_long"] = settings.home_lat_long
 
         search_spec = SearchSpec(
@@ -96,6 +97,7 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
         )
 
         channel = self.initiating_message.channel
+        print(channel.id)
         if channel.id not in self.bot.notifiers:
             _logger.info(f"Creating notifier for channel {channel.id}")
             self.bot.notifiers[channel.id] = DiscordNotifier(
@@ -108,28 +110,28 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
         return "\n".join([f"{i + 1}. {area}" for i, area in enumerate(get_areas().keys())])
 
     @staticmethod
-    def validate_areas(message: Message) -> str:
+    def validate_areas(v: str) -> str:
         areas = get_areas()
         try:
-            selection = int(message.content) - 1
+            selection = int(v) - 1
             selected_area = list(get_areas())[selection]
         except ValueError:
-            if message.content in areas:
-                selected_area = message.content
+            if v in areas:
+                selected_area = v
             else:
                 raise
 
         return selected_area
 
     @staticmethod
-    def validate_category(message: Message) -> str:
-        if not re.match(r"^[a-zA-Z0-9]+$", message.content):
+    def validate_category(v: str) -> str:
+        if not re.match(r"^[a-zA-Z0-9]+$", v):
             raise ValueError("Category must be alphanumeric")
-        return message.content
+        return v
 
     @staticmethod
-    def validate_price_range(message: Message) -> tuple[int, int]:
-        match = re.match(r"^(?P<min_price>[0-9]+)-(?P<max_price>[0-9]+)$", message.content)
+    def validate_price_range(v: str) -> tuple[int, int]:
+        match = re.match(r"^(?P<min_price>[0-9]+)-(?P<max_price>[0-9]+)$", v)
         if not match:
             raise ValueError("Price range must be two hyphen-separated numbers")
 

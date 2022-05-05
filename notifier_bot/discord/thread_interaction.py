@@ -14,7 +14,7 @@ DEFAULT_ERROR_RESPONSE = f"Sorry {FMT_USER}, I didn't recognize that. Please try
 class Question:
     key: str
     prompt: str
-    validator: Callable[[Message], Any]
+    validator: Callable[[str], Any]
     error_response: str | None = None
 
 
@@ -35,7 +35,7 @@ class ThreadInteraction:
         self.questions = questions
 
         self.unaswered_questions = list(questions)
-        self.answers: dict[str, Any] = {}
+        self._answers: dict[str, Any] = {}
 
         self.thread: Thread | None = None
 
@@ -45,6 +45,17 @@ class ThreadInteraction:
     @property
     def completed(self) -> bool:
         return not self.unaswered_questions
+
+    @property
+    def answers(self) -> dict[str, Any]:
+        return self._answers
+
+    @answers.setter
+    def answers(self, value: dict[str, Any]) -> None:
+        # pass all answers through their respective question's validator before setting
+        for question in self.questions:
+            value[question.key] = question.validator(value[question.key])  # type: ignore
+        self._answers = value
 
     @property
     def thread_id(self) -> int:
@@ -74,12 +85,12 @@ class ThreadInteraction:
     async def finish(self) -> dict[str, Any]:
         if self.thread is not None:
             await self.thread.edit(archived=True)
-        return self.answers
+        return self._answers
 
     async def on_message(self, message: Message) -> None:
         question = self.unaswered_questions[0]
         try:
-            validated = question.validator(message)  # type: ignore
+            validated = question.validator(message.content)  # type: ignore
         except Exception:
             error_response = DEFAULT_ERROR_RESPONSE
             if question.error_response:
@@ -87,7 +98,7 @@ class ThreadInteraction:
             await self.send(error_response)
             return
 
-        self.answers[question.key] = validated
+        self._answers[question.key] = validated
         self.unaswered_questions.pop(0)
         if self.unaswered_questions:
             await self.prompt(ack=True)

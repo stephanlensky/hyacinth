@@ -4,6 +4,7 @@ import asyncio
 import logging
 import random
 import re
+import traceback
 from typing import Any, Callable, Pattern
 
 import discord
@@ -116,7 +117,7 @@ class DiscordNotifierBot:
     def thank(self) -> str:
         return random.choice(THANKS)
 
-    @command(r"notify (?P<source_name>.+?)( (?P<params>(\w+=\w+ ?)+)$|$)")
+    @command(r"notify (?P<source_name>.+?)( (?P<params>(\w+=[\w-]+ ?)+)$|$)")
     async def create_notifier(self, message: Message, command: re.Match) -> None:
         source_name: str = command.group("source_name").lower()
         params: dict[str, str] | None = None
@@ -142,11 +143,21 @@ class DiscordNotifierBot:
             await setup_interaction.begin()
             self.active_threads[setup_interaction.thread_id] = setup_interaction
         else:
-            setup_interaction.answers = params
-            await setup_interaction.finish()
+            try:
+                setup_interaction.answers = params
+                await setup_interaction.finish()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                await message.channel.send(
+                    f"Sorry {message.author.mention}! Something went wrong while configuring the"
+                    f" notifier for this channel. ```{traceback.format_exc()}```"
+                )
+                raise
+
             await message.channel.send(
                 f"{self.affirmation()} {message.author.mention}, I've created a notifier for you"
-                " based on the parameters you gave."
+                f" based on following parameters:\n```{params}```"
             )
 
 
