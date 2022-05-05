@@ -10,12 +10,12 @@ import discord
 import wrapt
 from discord import Message, Thread
 
-from notifier_bot.discord.notifier_setup import CraigslistSetupHandler, ThreadBasedSetupHandler
+from notifier_bot.discord.notifier_setup import CraigslistNotifierSetupInteraction
+from notifier_bot.discord.thread_interaction import ThreadInteraction
 from notifier_bot.models import SearchSpecSource
 from notifier_bot.monitor import MarketplaceMonitor
 from notifier_bot.notifier import DiscordNotifier
 from notifier_bot.settings import get_settings
-from notifier_bot.util.craigslist import get_areas
 
 settings = get_settings()
 _logger = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ _logger = logging.getLogger(__name__)
 _discord_notifier_bot_commands: dict[Pattern, Callable] = {}
 
 AFFIRMATIONS = ["Okay", "Sure", "Sounds good", "No problem", "Roger that", "Got it"]
+THANKS = [*AFFIRMATIONS, "Thanks", "Thank you"]
 DEBUG_COMMAND_PREFIX = r"(d|debug) "
 
 
@@ -38,7 +39,7 @@ class DiscordNotifierBot:
 
         self.monitor = MarketplaceMonitor()
         self.notifiers: dict[int, DiscordNotifier] = {}  # channel ID -> notifier
-        self.active_threads: dict[int, ThreadBasedSetupHandler] = {}  # thread ID -> setup handler
+        self.active_threads: dict[int, ThreadInteraction] = {}  # thread ID -> setup handler
 
     def get_command_from_message(self, message: Message) -> str | None:
         """
@@ -67,10 +68,11 @@ class DiscordNotifierBot:
 
         # if the message is in a thread with an ongoing setup process, pass it to the setup handler
         if isinstance(message.channel, Thread) and message.channel.id in self.active_threads:
-            handler = self.active_threads[message.channel.id]
-            await handler.on_message(message)
-            if handler.is_complete():
-                _logger.debug(f"Completed handler on thread {message.channel.id}")
+            thread_interaction = self.active_threads[message.channel.id]
+            await thread_interaction.on_message(message)
+            if thread_interaction.completed:
+                _logger.debug(f"Completed interaction on thread {message.channel.id}")
+                await thread_interaction.finish()
                 self.active_threads.pop(message.channel.id)
             return
 
@@ -111,10 +113,17 @@ class DiscordNotifierBot:
     def affirmation(self) -> str:
         return random.choice(AFFIRMATIONS)
 
-    @command(r"notify (?P<source_name>.+)")
+    def thank(self) -> str:
+        return random.choice(THANKS)
+
+    @command(r"notify (?P<source_name>.+?)( (?P<params>(\w+=\w+ ?)+)$|$)")
     async def create_notifier(self, message: Message, command: re.Match) -> None:
         source_name: str = command.group("source_name").lower()
-        _logger.info(f"Received request to create notifier from source={source_name}")
+        params: dict[str, str] | None = None
+        if command.group("params"):
+            params = dict((p.split("=") for p in command.group("params").split(" ")))
+        _logger.info(f"Received request to create notifier from {source_name=} {params=}")
+
         try:
             source = SearchSpecSource(source_name)
         except ValueError:
@@ -124,43 +133,21 @@ class DiscordNotifierBot:
             )
             return
 
-        thread = await message.create_thread(
-            name=f"Create a new {source.capitalize()} notifier", auto_archive_duration=60
-        )
-        notifier_setup_handler = CraigslistSetupHandler(
-            self,
-            message.channel,
-            thread,
-            message.author,
-            self.notifiers.get(message.channel.id, None),
-        )
-        self.active_threads[thread.id] = notifier_setup_handler
-        await notifier_setup_handler.send_first_message()
+        if source == SearchSpecSource.CRAIGSLIST:
+            setup_interaction = CraigslistNotifierSetupInteraction(self, message)
+        else:
+            raise NotImplementedError(f"{source_name} not implemented")
 
-    @command(
-        rf"{DEBUG_COMMAND_PREFIX}notify-with-params (?P<source_name>.+?) (?P<params>(\w+=\w+ ?)+)"
-    )
-    async def debug_create_notifier_from_params(self, message: Message, command: re.Match) -> None:
-        source_name: str = command.group("source_name").lower()
-        params: dict[str, str] = dict((p.split("=") for p in command.group("params").split(" ")))
-        _logger.info(f"Creating notifier from params source={source_name} params={params}")
-        notifier_setup_handler = CraigslistSetupHandler(
-            self,
-            message.channel,
-            None,  # type: ignore
-            message.author,
-            self.notifiers.get(message.channel.id, None),
-        )
-        notifier_setup_handler.area = get_areas()[list(get_areas())[int(params["area"]) - 1]]
-        notifier_setup_handler.category = params["category"]
-        notifier_setup_handler.min_price = int(params["min_price"])
-        notifier_setup_handler.max_price = int(params["max_price"])
-        notifier_setup_handler.max_distance_miles = int(params["max_distance_miles"])
-        notifier_setup_handler.create_search()
-
-        await message.channel.send(
-            f"```Created notifier from params source={source_name} params={params}```"
-        )
+        if not params:
+            await setup_interaction.begin()
+            self.active_threads[setup_interaction.thread_id] = setup_interaction
+        else:
+            setup_interaction.answers = params
+            await setup_interaction.finish()
+            await message.channel.send(
+                f"{self.affirmation()} {message.author.mention}, I've created a notifier for you"
+                " based on the parameters you gave."
+            )
 
 
 async def run() -> None:

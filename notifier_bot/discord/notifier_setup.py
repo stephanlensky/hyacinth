@@ -1,217 +1,137 @@
 import logging
 import re
-from abc import ABC, abstractmethod
+import traceback
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from discord import Member, Message, Thread, User
+from discord import Message
 
-from notifier_bot.models import CraigslistArea, SearchSpec, SearchSpecSource
-from notifier_bot.notifier import DiscordNotifier, ListingNotifier
+from notifier_bot.discord.thread_interaction import FMT_USER, Question, ThreadInteraction
+from notifier_bot.models import SearchSpec, SearchSpecSource
+from notifier_bot.notifier import DiscordNotifier
 from notifier_bot.settings import get_settings
 from notifier_bot.sources.craigslist import CraigslistSearchParams
 from notifier_bot.util.craigslist import get_areas
 
 if TYPE_CHECKING:
     # avoid circular import
-    from discord.abc import MessageableChannel
-
     from notifier_bot.discord.discord_bot import DiscordNotifierBot
 
 settings = get_settings()
 _logger = logging.getLogger(__name__)
 
 
-class ThreadBasedSetupHandler(ABC):
-    def __init__(
-        self,
-        discord_bot: "DiscordNotifierBot",
-        channel: "MessageableChannel",
-        thread: Thread,
-        calling_user: User | Member,
-        notifier: ListingNotifier | None,
-    ) -> None:
-        self.calling_user = calling_user
-        self.discord_bot = discord_bot
-        self.channel = channel
-        self.thread = thread
-        self.notifier = notifier
-
-    @abstractmethod
-    async def send_first_message(self) -> None:
-        pass
-
-    @abstractmethod
-    async def on_message(self, message: Message) -> None:
-        pass
-
-    @abstractmethod
-    def is_complete(self) -> bool:
-        pass
-
-
-class CraigslistSetupHandler(ThreadBasedSetupHandler):
-    def __init__(
-        self,
-        discord_bot: "DiscordNotifierBot",
-        channel: "MessageableChannel",
-        thread: Thread,
-        calling_user: User | Member,
-        notifier: ListingNotifier | None,
-    ) -> None:
-        super().__init__(discord_bot, channel, thread, calling_user, notifier)
-        self.area: CraigslistArea | None = None
-        self.category: str | None = None
-        self.min_price: int | None = None
-        self.max_price: int | None = None
-        self.max_distance_miles: int | None = None
-        self.done = False
-
-    async def send_first_message(self) -> None:
-        await self.thread.send(f"Hi {self.calling_user.mention}! Let's get that set up for you.")
-        await self.thread.send(self.get_area_prompt())
-
-    def get_area_prompt(self) -> str:
-        areas = "\n".join([f"{i + 1}. {area}" for i, area in enumerate(get_areas().keys())])
-        return f"Which area of Craigslist would you like to search? Available areas:\n```{areas}```"
-
-    def get_category_prompt(self) -> str:
-        return (
-            "Which category of Craigslist would you like to search? This is the string in the"
-            " Craigslist URL after `/search`. For example, `mca` for motorcycles or `sss` for"
-            ' general "for sale".'
+class CraigslistNotifierSetupInteraction(ThreadInteraction):
+    def __init__(self, bot: "DiscordNotifierBot", initiating_message: Message) -> None:
+        super().__init__(
+            bot,
+            initiating_message,
+            thread_title="Create a new Craigslist notifier",
+            first_message=f"Hi {FMT_USER}! Let's get that set up for you.",
+            questions=[
+                Question(
+                    key="area",
+                    prompt=(
+                        "Which area of Craigslist would you like to search? Available"
+                        f" areas:\n```{self.available_areas}```"
+                    ),
+                    validator=CraigslistNotifierSetupInteraction.validate_areas,
+                ),
+                Question(
+                    key="category",
+                    prompt=(
+                        "Which category of Craigslist would you like to search? This is the string"
+                        " in the Craigslist URL after `/search`. For example, `mca` for motorcycles"
+                        ' or `sss` for general "for sale".'
+                    ),
+                    validator=CraigslistNotifierSetupInteraction.validate_category,
+                ),
+                Question(
+                    key="price_range",
+                    prompt=(
+                        "What price range would you like to search for? Enter your answer as two"
+                        " dollar values separated by a hyphen. For example, `20-100`."
+                    ),
+                    validator=CraigslistNotifierSetupInteraction.validate_price_range,
+                ),
+                Question(
+                    key="max_distance_miles",
+                    prompt=(
+                        "What is the maximum distance away (in miles) that you would like to show"
+                        " results for?"
+                    ),
+                    validator=lambda m: int(m.content),
+                ),
+            ],
         )
 
-    def get_price_prompt(self) -> str:
-        return (
-            "What price range would you like to search for? Enter your answer as two dollar values"
-            " separated by a hyphen. For example, `20-100`."
+    async def finish(self) -> dict[str, Any]:
+        try:
+            self.configure_notifier()
+        except Exception:
+            await self.send(
+                f"Sorry {FMT_USER}! Something went wrong while configuring the notifier for this"
+                f" channel. ```{traceback.format_exc()}```"
+            )
+            return await super().finish()
+
+        await self.send(
+            f"{self.bot.thank()} {FMT_USER}! I've set up a notifier for new Craigslist listings on"
+            " this channel."
         )
 
-    def get_max_distance_prompt(self) -> str:
-        return (
-            "What is the maximum distance away (in miles) that you would like to show results for?"
-        )
+        return await super().finish()
 
-    async def on_message(self, message: Message) -> None:
-        # handle area selection
-        if self.area is None:
-            selected_area: str | None = None
-            areas = get_areas()
-            try:
-                selection = int(message.content) - 1
-                if 0 <= selection < len(areas):
-                    selected_area = list(areas)[selection]
-            except ValueError:
-                if message.content in areas:
-                    selected_area = message.content
-
-            if selected_area is None:
-                await self.thread.send(
-                    f"Sorry {message.author.mention}, your selection wasn't recognized. Please try"
-                    " again."
-                )
-                await self.thread.send(self.get_area_prompt())
-                return
-
-            self.area = areas[selected_area]
-            await self.thread.send(
-                f"{self.discord_bot.affirmation()} {message.author.mention}. I'll show you"
-                f" results from `{selected_area}`."
-            )
-            await self.thread.send(self.get_category_prompt())
-
-        # handle category selection
-        elif self.category is None:
-            if not re.match(r"^[a-zA-Z0-9]+$", message.content):
-                await self.thread.send(
-                    f"Sorry {message.author.mention}, I didn't recognize that. Categories should"
-                    " contain only letters and numbers. Please try again."
-                )
-                await self.thread.send(self.get_category_prompt())
-                return
-
-            self.category = message.content
-            await self.thread.send(
-                f"{self.discord_bot.affirmation()} {message.author.mention}, I'll look for results"
-                f" from category `{self.category}`."
-            )
-            await self.thread.send(self.get_price_prompt())
-
-        # handle min/max price selection
-        elif self.min_price is None or self.max_price is None:
-            match = re.match(r"^(?P<min_price>[0-9]+)-(?P<max_price>[0-9]+)$", message.content)
-            if not match:
-                await self.thread.send(
-                    f"Sorry {message.author.mention}, I didn't recognize that. Please try again."
-                )
-                await self.thread.send(self.get_price_prompt())
-                return
-
-            min_price, max_price = match.group("min_price", "max_price")
-            self.min_price = int(min_price)
-            self.max_price = int(max_price)
-            await self.thread.send(
-                f"{self.discord_bot.affirmation()} {message.author.mention}, setting a minimum"
-                f" price of ${self.min_price} and maximum price of ${self.max_price} for this"
-                " search. Almost done! Just one last question."
-            )
-            await self.thread.send(self.get_max_distance_prompt())
-
-        # handle max distance selection
-        elif self.max_distance_miles is None:
-            if not re.match(r"^[0-9]+$", message.content):
-                await self.thread.send(
-                    f"Sorry {message.author.mention}, I didn't recognize that. Please try again."
-                )
-                await self.thread.send(self.get_max_distance_prompt())
-                return
-
-            self.max_distance_miles = int(message.content)
-            await self.thread.send(
-                f"{self.discord_bot.affirmation()} {message.author.mention}, setting a maximum"
-                f" distance of {self.max_distance_miles} miles away."
-            )
-            await self.thread.send(
-                "All done! I will configure the notifier for you now. This thread can be safely"
-                " deleted."
-            )
-            await self.thread.edit(archived=True)
-
-            # configuration is done, create the notifier/register search
-            self.create_search()
-
-    def create_search(self) -> None:
-        if (
-            self.area is None
-            or self.category is None
-            or self.min_price is None
-            or self.max_price is None
-            or self.max_distance_miles is None
-        ):
-            raise ValueError("Initialize all parameters before creating search")
+    def configure_notifier(self) -> None:
+        search_params = dict(self.answers)
+        area = get_areas()[self.answers.pop("area")]
+        search_params["site"] = area.site
+        search_params["nearby_areas"] = area.nearby_areas
+        search_params["min_price"], search_params["max_price"] = self.answers.pop("price_range")
+        search_params["home_lat_long"] = settings.home_lat_long
 
         search_spec = SearchSpec(
             source=SearchSpecSource.CRAIGSLIST,
-            search_params=CraigslistSearchParams(
-                site=self.area.site,
-                nearby_areas=self.area.nearby_areas,
-                category=self.category,
-                home_lat_long=settings.home_lat_long,
-                min_price=self.min_price,
-                max_price=self.max_price,
-                max_distance_miles=self.max_distance_miles,
-            ).dict(),
+            search_params=CraigslistSearchParams.parse_obj(search_params).dict(),
         )
-        if self.notifier is None:
-            _logger.info(f"Creating notifier for channel {self.channel.id}")
-            self.discord_bot.notifiers[self.channel.id] = DiscordNotifier(
-                self.channel, self.discord_bot.monitor, notification_frequency=timedelta(minutes=1)
+
+        channel = self.initiating_message.channel
+        if channel.id not in self.bot.notifiers:
+            _logger.info(f"Creating notifier for channel {channel.id}")
+            self.bot.notifiers[channel.id] = DiscordNotifier(
+                channel, self.bot.monitor, notification_frequency=timedelta(minutes=1)
             )
-            self.notifier = self.discord_bot.notifiers[self.channel.id]
-        self.notifier.create_search(search_spec)
+        self.bot.notifiers[channel.id].create_search(search_spec)
 
-        self.done = True
+    @property
+    def available_areas(self) -> str:
+        return "\n".join([f"{i + 1}. {area}" for i, area in enumerate(get_areas().keys())])
 
-    def is_complete(self) -> bool:
-        return self.done
+    @staticmethod
+    def validate_areas(message: Message) -> str:
+        areas = get_areas()
+        try:
+            selection = int(message.content) - 1
+            selected_area = list(get_areas())[selection]
+        except ValueError:
+            if message.content in areas:
+                selected_area = message.content
+            else:
+                raise
+
+        return selected_area
+
+    @staticmethod
+    def validate_category(message: Message) -> str:
+        if not re.match(r"^[a-zA-Z0-9]+$", message.content):
+            raise ValueError("Category must be alphanumeric")
+        return message.content
+
+    @staticmethod
+    def validate_price_range(message: Message) -> tuple[int, int]:
+        match = re.match(r"^(?P<min_price>[0-9]+)-(?P<max_price>[0-9]+)$", message.content)
+        if not match:
+            raise ValueError("Price range must be two hyphen-separated numbers")
+
+        min_price, max_price = match.group("min_price", "max_price")
+        return (int(min_price), int(max_price))
