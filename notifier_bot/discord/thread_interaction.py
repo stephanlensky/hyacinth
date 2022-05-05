@@ -52,10 +52,12 @@ class ThreadInteraction:
 
     @answers.setter
     def answers(self, value: dict[str, Any]) -> None:
-        # pass all answers through their respective question's validator before setting
-        for question in self.questions:
-            value[question.key] = question.validator(value[question.key])  # type: ignore
-        self._answers = value
+        # attempt to put supplied answers in the right order before adding
+        question_keys = [q.key for q in self.questions]
+        answer_keys = sorted(value.keys(), key=question_keys.index)
+        # add all answers
+        for k in answer_keys:
+            self._add_answer(value[k])
 
     @property
     def thread_id(self) -> int:
@@ -89,19 +91,26 @@ class ThreadInteraction:
 
     async def on_message(self, message: Message) -> None:
         question = self.unaswered_questions[0]
-        try:
-            validated = question.validator(message.content)  # type: ignore
-        except Exception:
+        if not self._add_answer(message.content):
             error_response = DEFAULT_ERROR_RESPONSE
             if question.error_response:
                 error_response = question.error_response
             await self.send(error_response)
             return
 
-        self._answers[question.key] = validated
-        self.unaswered_questions.pop(0)
         if self.unaswered_questions:
             await self.prompt(ack=True)
+
+    def _add_answer(self, answer: str) -> bool:
+        question = self.unaswered_questions[0]
+        try:
+            validated = question.validator(answer)  # type: ignore
+        except Exception:
+            return False
+
+        self._answers[question.key] = validated
+        self.unaswered_questions.pop(0)
+        return True
 
     async def prompt(self, ack: bool = False) -> None:
         if ack:

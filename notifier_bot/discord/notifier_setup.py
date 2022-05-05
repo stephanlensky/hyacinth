@@ -97,7 +97,6 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
         )
 
         channel = self.initiating_message.channel
-        print(channel.id)
         if channel.id not in self.bot.notifiers:
             _logger.info(f"Creating notifier for channel {channel.id}")
             self.bot.notifiers[channel.id] = DiscordNotifier(
