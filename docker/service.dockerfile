@@ -20,4 +20,4 @@ ENV PATH="/home/joyvan/.local/bin:${PATH}"
 COPY . .
 RUN poetry install
 
-CMD ["./docker/bot-docker-entrypoint.sh"]
+CMD ["./docker/scripts/bot-docker-entrypoint.sh"]

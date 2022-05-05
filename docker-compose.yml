@@ -19,7 +19,7 @@ services:
 
   worker:
     <<: *service
-    command: ["/bin/sh", "docker/worker-docker-entrypoint.sh"]
+    command: ["/bin/sh", "docker/scripts/worker-docker-entrypoint.sh"]
 
   db:
     image: postgres
