@@ -25,6 +25,8 @@ services:
     image: postgres
     env_file:
       - ".env"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     restart: "unless-stopped"
 
   redis:
@@ -34,7 +36,7 @@ services:
     restart: "unless-stopped"
     stop_grace_period: "2s"
     volumes:
-      - "redis:/data"
+      - redis:/data
 
   devbox:
     <<: *service
@@ -58,3 +60,4 @@ services:
 
 volumes:
   redis:
+  pgdata:
