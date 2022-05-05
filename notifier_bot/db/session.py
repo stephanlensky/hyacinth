@@ -6,6 +6,8 @@ from notifier_bot.settings import get_settings
 
 settings = get_settings()
 
-engine = create_engine(f"sqlite+pysqlite:///{settings.sqlite_db_path}", future=True)
+credentials = f"{settings.postgres_user}:{settings.postgres_password}"
+host = f"db:5432/{settings.postgres_user}"
+engine = create_engine(f"postgresql+psycopg2://{credentials}@{host}", future=True)
 Session = sessionmaker(engine)
 Base.metadata.create_all(engine)

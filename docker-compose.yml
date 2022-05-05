@@ -1,15 +1,6 @@
 version: "3.8"
 
 services:
-  redis:
-    env_file:
-      - ".env"
-    image: "redis:7.0.0"
-    restart: "unless-stopped"
-    stop_grace_period: "2s"
-    volumes:
-      - "redis:/data"
-
   service: &service
     env_file:
       - ".env"
@@ -20,15 +11,46 @@ services:
     volumes:
       - ./:/app
     links:
+      - db
       - redis
     depends_on:
+      - db
       - redis
+
+  db:
+    image: postgres
+    env_file:
+      - ".env"
+    restart: "unless-stopped"
+
+  redis:
+    image: "redis:7.0.0"
+    env_file:
+      - ".env"
+    restart: "unless-stopped"
+    stop_grace_period: "2s"
+    volumes:
+      - "redis:/data"
 
   devbox:
     <<: *service
     entrypoint: /bin/bash
     stdin_open: true
     tty: true
+
+  pgweb:
+    image: sosedoff/pgweb
+    env_file:
+      - ".env"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/postgres?sslmode=disable
+    restart: "unless-stopped"
+    ports:
+      - "8081:8081"
+    links:
+      - db
+    depends_on:
+      - db
 
 volumes:
   redis:

@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     log_date_format: str = "%Y-%m-%d %H:%M:%S"
 
     sqlite_db_path: str = "database.db"
+    postgres_user: str
+    postgres_password: str
 
     google_geocoding_api_key: str
 
