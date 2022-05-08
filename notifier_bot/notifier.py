@@ -4,8 +4,11 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
+from apscheduler.triggers.interval import IntervalTrigger
+
 from notifier_bot.models import Listing, SearchSpec
 from notifier_bot.monitor import MarketplaceMonitor
+from notifier_bot.scheduler import get_scheduler
 
 if TYPE_CHECKING:
     from discord.abc import MessageableChannel
@@ -24,13 +27,18 @@ class ListingNotifier(ABC):
         self.monitor = monitor
         self.notification_frequency: timedelta = notification_frequency
 
+        self.scheduler = get_scheduler()
+
         if last_notified is None:
             self.last_notified = datetime.now()
         self.paused = paused
         self.active_searches: list[SearchSpec] = []
-        self._notification_task: asyncio.Task | None = (
-            self._start_notification_task() if not self.paused else None
+
+        self.notify_job = self.scheduler.add_job(
+            self._notify_new_listings, IntervalTrigger(seconds=self.notification_frequency.seconds)
         )
+        if self.paused:
+            self.scheduler.pause_job(self.notify_job.id)
 
     def create_search(self, search_spec: SearchSpec) -> None:
         self.monitor.register_search(search_spec)
@@ -38,56 +46,43 @@ class ListingNotifier(ABC):
 
     def pause(self) -> None:
         self.paused = True
-        if self._notification_task is not None:
-            self._notification_task.cancel()
-            self._notification_task = None
+        self.scheduler.pause_job(self.notify_job.id)
 
     def unpause(self) -> None:
         self.paused = False
-        if self._notification_task is None:
-            self._notification_task = self._start_notification_task()
+        self.scheduler.resume_job(self.notify_job.id)
 
-    def _start_notification_task(
-        self,
-    ) -> asyncio.Task:
-        _logger.debug("Starting notifier task!")
-        loop = asyncio.get_running_loop()
-        return loop.create_task(self._notify_new_listings_loop())
-
-    async def _notify_new_listings_loop(self) -> None:
-        while True:
-            not_yet_notified_listings: list[Listing] = []
-            try:
-                listings: list[Listing] = []
-                for search in self.active_searches:
-                    listings.extend(
-                        await self.monitor.get_listings(search, after_time=self.last_notified)
-                    )
-                _logger.debug(
-                    f"Found {len(listings)} to notify for across {len(self.active_searches)} active"
-                    " searches"
+    async def _notify_new_listings(self) -> None:
+        not_yet_notified_listings: list[Listing] = []
+        try:
+            listings: list[Listing] = []
+            for search in self.active_searches:
+                listings.extend(
+                    await self.monitor.get_listings(search, after_time=self.last_notified)
                 )
-                listings.sort(key=lambda l: l.updated_at)
+            _logger.debug(
+                f"Found {len(listings)} to notify for across {len(self.active_searches)} active"
+                " searches"
+            )
+            listings.sort(key=lambda l: l.updated_at)
 
-                not_yet_notified_listings = listings.copy()
-                for listing in listings:
-                    await self.notify(listing)
-                    not_yet_notified_listings.remove(listing)
-                self.last_notified = datetime.now()
-
-                await asyncio.sleep(self.notification_frequency.seconds)
-            except asyncio.CancelledError:
-                # ensure users are notified of all listings even if the task is cancelled partway
-                # through notification loop
-                if not_yet_notified_listings:
-                    _logger.debug(
-                        "Listing notification process interrupted! Notifying"
-                        f" {len(not_yet_notified_listings)} listings before cancelling."
-                    )
-                for listing in not_yet_notified_listings:
-                    await self.notify(listing)
-                self.last_notified = datetime.now()
-                break
+            not_yet_notified_listings = listings.copy()
+            for listing in listings:
+                await self.notify(listing)
+                not_yet_notified_listings.remove(listing)
+            self.last_notified = datetime.now()
+        except asyncio.CancelledError:
+            # ensure users are notified of all listings even if the task is cancelled partway
+            # through notification loop
+            if not_yet_notified_listings:
+                _logger.debug(
+                    "Listing notification process interrupted! Notifying"
+                    f" {len(not_yet_notified_listings)} listings before cancelling."
+                )
+            for listing in not_yet_notified_listings:
+                await self.notify(listing)
+            self.last_notified = datetime.now()
+            raise
 
     @abstractmethod
     async def notify(self, listing: Listing) -> None:

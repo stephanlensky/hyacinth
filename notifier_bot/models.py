@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 from datetime import datetime
 from enum import Enum
 from typing import Any
 
 from boolean import Expression
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 
 class HashableBaseModel(BaseModel):
     def __hash__(self) -> int:
-
         return hash((type(self),) + tuple(self.__dict__.values()))
 
     class Config:
@@ -49,18 +50,27 @@ class SearchSpecSource(str, Enum):
     CRAIGSLIST = "craigslist"
 
 
+class SearchParams(HashableBaseModel):
+    pass
+
+
 class SearchSpec(HashableBaseModel):
     source: SearchSpecSource
-    # use a tuple of key-value pairs instead of a dict so the model can be hashed
-    search_params: tuple[tuple[str, Any], ...]
+    search_params: SearchParams
 
-    @validator("search_params", pre=True)
     @classmethod
-    def search_param_dict_to_tuple(cls, v: Any) -> tuple:
-        if isinstance(v, dict):
-            sorted_items = sorted(v.items(), key=lambda i: i[0])
-            return tuple(sorted_items)
-        return v
+    def parse_obj(cls, obj: dict[str, Any]) -> SearchSpec:
+        source = obj["source"]
+        search_params = obj["search_params"]
+        if source == SearchSpecSource.CRAIGSLIST:
+            # pylint: disable=import-outside-toplevel
+            from notifier_bot.sources.craigslist import CraigslistSearchParams
+
+            return SearchSpec(
+                source=source, search_params=CraigslistSearchParams.parse_obj(search_params)
+            )
+
+        raise NotImplementedError(f"{source} not implemented")
 
 
 class FilterRules(BaseModel):

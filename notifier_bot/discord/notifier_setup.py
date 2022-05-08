@@ -93,8 +93,9 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
 
         search_spec = SearchSpec(
             source=SearchSpecSource.CRAIGSLIST,
-            search_params=CraigslistSearchParams.parse_obj(search_params).dict(),
+            search_params=CraigslistSearchParams.parse_obj(search_params),
         )
+        _logger.debug(f"Parsed search spec from answers {search_spec}")
 
         channel = self.initiating_message.channel
         if channel.id not in self.bot.notifiers:

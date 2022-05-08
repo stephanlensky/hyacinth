@@ -6,9 +6,9 @@ from datetime import datetime
 from typing import Any
 
 from craigslist import CraigslistForSale
-from pydantic import BaseModel, validator
+from pydantic import validator
 
-from notifier_bot.models import Listing
+from notifier_bot.models import Listing, SearchParams
 from notifier_bot.settings import get_settings
 from notifier_bot.sources.abc import ListingSource
 from notifier_bot.util.craigslist import get_geotag_from_url
@@ -20,7 +20,7 @@ _logger = logging.getLogger(__name__)
 CRAIGSLIST_DATE_FORMAT = "%Y-%m-%d %H:%M"
 
 
-class CraigslistSearchParams(BaseModel):
+class CraigslistSearchParams(SearchParams):
     site: str
     nearby_areas: tuple[str, ...]
     category: str
@@ -39,8 +39,8 @@ class CraigslistSource(ListingSource):
     def __init__(self, search_params: CraigslistSearchParams) -> None:
         self.search_params = search_params
 
-    @property
-    def recommended_polling_interval(self) -> int:
+    @classmethod
+    def recommended_polling_interval(cls, search_params: SearchParams) -> int:
         return settings.craigslist_poll_interval_seconds
 
     def get_craigslist_client(self) -> CraigslistForSale:

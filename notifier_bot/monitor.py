@@ -1,67 +1,57 @@
-import asyncio
 import logging
 from datetime import datetime, timedelta
 
+from apscheduler.job import Job
+from apscheduler.triggers.interval import IntervalTrigger
+
 from notifier_bot.db.listing import get_last_listing as get_last_listing_from_db
 from notifier_bot.db.listing import get_listings as get_listings_from_db
-from notifier_bot.db.listing import save_listings as save_listings_to_db
 from notifier_bot.models import Listing, SearchSpec, SearchSpecSource
-from notifier_bot.sources.abc import ListingSource
-from notifier_bot.sources.craigslist import CraigslistSearchParams, CraigslistSource
+from notifier_bot.scheduler import get_scheduler
+from notifier_bot.sources.craigslist import CraigslistSource
+from notifier_bot.tasks import get_and_save_listings
 
 _logger = logging.getLogger(__name__)
 
 
 class MarketplaceMonitor:
     def __init__(self) -> None:
-        self.search_spec_source_mapping: dict[SearchSpec, ListingSource] = {}
+        self.scheduler = get_scheduler()
+        self.search_spec_job_mapping: dict[SearchSpec, Job] = {}
 
     def register_search(self, search_spec: SearchSpec) -> None:
-        if search_spec in self.search_spec_source_mapping:
+        # check if there is already a scheduled task to poll this search
+        if search_spec in self.search_spec_job_mapping:
             return
 
-        source = self._make_source(search_spec)
-        self.search_spec_source_mapping[search_spec] = source
-        self._start_poll_task(source, search_spec)
+        # otherwise schedule a job to periodically check results and write them to the db
+        self.search_spec_job_mapping[search_spec] = self.scheduler.add_job(
+            self.poll_search,
+            kwargs={"search_spec": search_spec},
+            trigger=IntervalTrigger(self._get_polling_interval(search_spec)),
+            next_run_time=datetime.now(),
+        )
 
     async def get_listings(self, search_spec: SearchSpec, after_time: datetime) -> list[Listing]:
         return get_listings_from_db(search_spec, after_time)
 
     @staticmethod
-    def _make_source(search_spec: SearchSpec) -> ListingSource:
+    def _get_polling_interval(search_spec: SearchSpec) -> int:
         if search_spec.source == SearchSpecSource.CRAIGSLIST:
-            return CraigslistSource(
-                CraigslistSearchParams.parse_obj(dict(search_spec.search_params)),
-            )
+            return CraigslistSource.recommended_polling_interval(search_spec.search_params)
 
         raise NotImplementedError(f"{search_spec.source} not implemented")
 
-    def _start_poll_task(
-        self,
-        source: ListingSource,
-        search_spec: SearchSpec,
-    ) -> asyncio.Task:
-        loop = asyncio.get_running_loop()
-        return loop.create_task(self._poll_loop(source, search_spec))
-
-    async def _poll_loop(self, source: ListingSource, search_spec: SearchSpec) -> None:
-        _logger.debug(f"Starting poll loop for search {search_spec}")
-        start_time = datetime.now() - timedelta(days=7)
+    async def poll_search(self, search_spec: SearchSpec) -> None:
+        _logger.debug(f"Polling search {search_spec}")
+        after_time = datetime.now() - timedelta(days=7)
         last_listing = get_last_listing_from_db(search_spec)
         if last_listing is not None:
-            # resume at the last listing time if it was more recent
-            start_time = max(last_listing.created_at, start_time)
+            # resume at the last listing time if it was more recent than 7 days ago
+            after_time = max(last_listing.created_at, after_time)
             _logger.debug(
-                f"Found recent listing at {last_listing.created_at}, resuming at {start_time}."
+                f"Found recent listing at {last_listing.created_at}, resuming at {after_time}."
             )
 
-        while True:
-            try:
-                listings = await source.get_listings(after_time=start_time)
-                _logger.debug(
-                    f"Found {len(listings)} since {start_time} for search_spec={search_spec}"
-                )
-                save_listings_to_db(search_spec, listings)
-                await asyncio.sleep(source.recommended_polling_interval)
-            except asyncio.CancelledError:
-                break
+        # start a celery task in a separate worker to get and save the listings
+        get_and_save_listings.delay(search_spec.json(), after_time.isoformat())
