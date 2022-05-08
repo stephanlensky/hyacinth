@@ -1,7 +1,7 @@
 from boolean import Expression
 
-from notifier_bot.boolean_rule_algebra import BooleanRuleAlgebra
 from notifier_bot.models import FilterRules
+from notifier_bot.util.boolean_rule_algebra import BooleanRuleAlgebra
 
 algebra = BooleanRuleAlgebra()
 

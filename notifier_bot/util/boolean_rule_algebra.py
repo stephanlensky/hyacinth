@@ -14,6 +14,14 @@ from boolean import (
 
 
 class BooleanRuleAlgebra(BooleanAlgebra):
+    """
+    Subclass of BooleanAlgebra to be used with filter rules.
+
+    The subclass implements the following changes to the tokenize method:
+        - Don't interpret '0' and '1' as true/false
+        - Interpret words as a single token
+    """
+
     def tokenize(self, expr: boolean.basestring) -> list:
         """
         Return an iterable of 3-tuple describing each token given an expression

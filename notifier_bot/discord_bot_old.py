@@ -12,7 +12,6 @@ from random import choice
 import discord
 import requests
 
-from notifier_bot.boolean_rule_algebra import BooleanRuleAlgebra
 from notifier_bot.craigslist_notifier import (
     CRAIGSLIST_AREA_NAMES,
     CraigslistMonitor,
@@ -20,6 +19,7 @@ from notifier_bot.craigslist_notifier import (
     tsprint,
 )
 from notifier_bot.state_names import state_names
+from notifier_bot.util.boolean_rule_algebra import BooleanRuleAlgebra
 
 client = discord.Client()
 logged_in = asyncio.Event()
