@@ -161,7 +161,7 @@ class DiscordNotifierBot:
             )
 
 
-async def run() -> None:
+async def start() -> None:
     loop = asyncio.get_running_loop()
 
     intents = discord.Intents(messages=True, guild_messages=True, message_content=True, guilds=True)
