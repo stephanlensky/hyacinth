@@ -62,8 +62,10 @@ class CraigslistSource(ListingSource):
     async def get_listings(self, after_time: datetime, limit: int | None = None) -> list[Listing]:
         cl_client = self.get_craigslist_client()
         listings = []
-        for search_result in cl_client.get_results(sort_by="newest", limit=limit):
-            listing = self._make_listing(cl_client.get_listing(search_result))
+        for search_result in cl_client.get_results(
+            geotagged=True, include_details=True, sort_by="newest", limit=limit
+        ):
+            listing = self._make_listing(search_result)
             if listing.updated_at > after_time > listing.created_at:
                 _logger.debug(f"Skipping updated listing {listing.title}")
                 continue

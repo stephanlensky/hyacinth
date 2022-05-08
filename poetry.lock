@@ -699,7 +699,7 @@ dev = ["pre-commit", "tox", "pytest-asyncio"]
 
 [[package]]
 name = "python-craigslist"
-version = "1.0.8"
+version = "1.1.4"
 description = "Simple Craigslist wrapper."
 category = "main"
 optional = false
@@ -707,15 +707,16 @@ python-versions = "*"
 develop = false
 
 [package.dependencies]
-beautifulsoup4 = "*"
-requests = "*"
+beautifulsoup4 = ">=4.9.0"
+requests = ">=2.25.0"
 six = "*"
+urllib3 = ">=1.26.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/stephanlensky/python-craigslist.git"
 reference = "master"
-resolved_reference = "4fc9356e5da072bdcf90afc0769ed9d35933346e"
+resolved_reference = "db0c43a9a9269234748056477bacbee8b01ff490"
 
 [[package]]
 name = "python-dateutil"
@@ -760,7 +761,7 @@ tzdata = {version = "*", markers = "python_version >= \"3.6\""}
 
 [[package]]
 name = "redis"
-version = "4.2.2"
+version = "4.3.0"
 description = "Python client for Redis database and key-value store"
 category = "main"
 optional = false
@@ -1572,8 +1573,8 @@ pytz-deprecation-shim = [
     {file = "pytz_deprecation_shim-0.1.0.post0.tar.gz", hash = "sha256:af097bae1b616dde5c5744441e2ddc69e74dfdcb0c263129610d85b87445a59d"},
 ]
 redis = [
-    {file = "redis-4.2.2-py3-none-any.whl", hash = "sha256:4e95f4ec5f49e636efcf20061a5a9110c20852f607cfca6865c07aaa8a739ee2"},
-    {file = "redis-4.2.2.tar.gz", hash = "sha256:0107dc8e98a4f1d1d4aa00100e044287f77121a1e6d2085545c4b7fa94a7a27f"},
+    {file = "redis-4.3.0-py3-none-any.whl", hash = "sha256:0b1cc61af1389c6cd27a428a5425d81fbe11961bc2a4317b9c94909aed91b501"},
+    {file = "redis-4.3.0.tar.gz", hash = "sha256:240e84b967653146ad136692b945b7bc90cf82f4aab3f46a20975fb60a0e4ff9"},
 ]
 requests = [
     {file = "requests-2.27.1-py2.py3-none-any.whl", hash = "sha256:f22fa1e554c9ddfd16e6e41ac79759e17be9e492b3587efa038054674760e72d"},
