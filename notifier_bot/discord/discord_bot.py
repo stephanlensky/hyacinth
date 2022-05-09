@@ -62,10 +62,10 @@ class DiscordNotifierBot:
         return None
 
     async def on_message(self, message: Message) -> None:
-        _logger.debug(f"Received message: {message}")
         # if this bot sent the message, never do anything
         if message.author == self.client.user:
             return
+        _logger.debug(f"Received message: {message}")
 
         # if the message is in a thread with an ongoing setup process, pass it to the setup handler
         if isinstance(message.channel, Thread) and message.channel.id in self.active_threads:

@@ -8,9 +8,11 @@ from notifier_bot.db.listing import get_last_listing as get_last_listing_from_db
 from notifier_bot.db.listing import get_listings as get_listings_from_db
 from notifier_bot.models import Listing, SearchSpec, SearchSpecSource
 from notifier_bot.scheduler import get_scheduler
+from notifier_bot.settings import get_settings
 from notifier_bot.sources.craigslist import CraigslistSource
 from notifier_bot.tasks import get_and_save_listings
 
+settings = get_settings()
 _logger = logging.getLogger(__name__)
 
 
@@ -44,7 +46,7 @@ class MarketplaceMonitor:
 
     async def poll_search(self, search_spec: SearchSpec) -> None:
         _logger.debug(f"Polling search {search_spec}")
-        after_time = datetime.now() - timedelta(days=7)
+        after_time = datetime.now() - timedelta(hours=settings.notifier_backdate_time_hours)
         last_listing = get_last_listing_from_db(search_spec)
         if last_listing is not None:
             # resume at the last listing time if it was more recent than 7 days ago
