@@ -1,9 +1,10 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
+import discord
 from apscheduler.triggers.interval import IntervalTrigger
 
 from notifier_bot.models import Listing, SearchSpec
@@ -35,7 +36,9 @@ class ListingNotifier(ABC):
         self.last_notified: dict[SearchSpec, datetime] = {}
 
         self.notify_job = self.scheduler.add_job(
-            self._notify_new_listings, IntervalTrigger(seconds=self.notification_frequency.seconds)
+            self._notify_new_listings,
+            IntervalTrigger(seconds=self.notification_frequency.seconds),
+            next_run_time=datetime.now(),
         )
         if self.paused:
             self.scheduler.pause_job(self.notify_job.id)
@@ -129,4 +132,12 @@ class DiscordNotifier(ListingNotifier):
         self.channel = channel
 
     async def notify(self, listing: Listing) -> None:
-        await self.channel.send(f"{listing}")
+        embed = discord.Embed(
+            title=listing.title,
+            url=listing.url,
+            description=listing.body[:2048],
+            timestamp=listing.updated_at.astimezone(timezone.utc),
+        )
+        if listing.image_urls:
+            embed.set_image(url=listing.image_urls[0])
+        await self.channel.send(embed=embed)
