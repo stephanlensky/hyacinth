@@ -31,7 +31,10 @@ class Settings(BaseSettings):
     home_lat_long: tuple[float, float] = (42.35871993931778, -71.06382445970375)
 
     # immediately send notifications for listings this far in the past after creating a new notifier
-    notifier_backdate_time_hours: int = 24 * 2
+    notifier_backdate_time_hours: int = 24
+
+    # how often to check the database for new listings to notify each channel about
+    notification_frequency_seconds: int = 60
 
     class Config:
         env_file = ".env"

@@ -117,6 +117,15 @@ class DiscordNotifierBot:
     def thank(self) -> str:
         return random.choice(THANKS)
 
+    async def check_notifier_exists(self, message: Message) -> bool:
+        if message.channel.id not in self.notifiers:
+            await message.channel.send(
+                f"Sorry {message.author.mention}, you cannot use this command because there is not"
+                " a notifier on this channel. Try setting one up with `$notify <source>`."
+            )
+            return False
+        return True
+
     @command(r"notify (?P<source_name>.+?)( (?P<params>(\w+=[\w-]+ ?)+)$|$)")
     async def create_notifier(self, message: Message, command: re.Match) -> None:
         source_name: str = command.group("source_name").lower()
@@ -156,9 +165,30 @@ class DiscordNotifierBot:
                 raise
 
             await message.channel.send(
-                f"{self.affirm()} {message.author.mention}, I've created a notifier for you"
+                f"{self.affirm()} {message.author.mention}, I've created a search for you"
                 f" based on following parameters:\n```{params}```"
             )
+
+    @command(r"(pause|stop)")
+    async def pause(self, message: Message, _command: re.Match) -> None:
+        if not await self.check_notifier_exists(message):
+            return
+
+        self.notifiers[message.channel.id].pause()
+        await message.channel.send(
+            f"{self.affirm()} {message.author.mention}, I've paused notifications for this channel."
+        )
+
+    @command(r"(unpause|start)")
+    async def unpause(self, message: Message, _command: re.Match) -> None:
+        if not await self.check_notifier_exists(message):
+            return
+
+        self.notifiers[message.channel.id].unpause()
+        await message.channel.send(
+            f"{self.affirm()} {message.author.mention}, I've resumed notifications for this"
+            " channel."
+        )
 
 
 async def start() -> None:

@@ -67,7 +67,7 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
 
     async def finish(self) -> dict[str, Any]:
         try:
-            self.configure_notifier()
+            created_notifier = self.configure_notifier()
         except Exception:
             await self.send(
                 f"Sorry {FMT_USER}! Something went wrong while configuring the notifier for this"
@@ -76,14 +76,22 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
             await super().finish()
             raise
 
+        # if this is the first search set up on this channel, the notifier starts paused. add some
+        # helpful information about that for the user if necessary.
+        created_notifier_part = (
+            "\n\nNotifications are currently paused. When you are done configuring your desired"
+            " filter rules, start sending notifications with `$start`."
+            if created_notifier
+            else ""
+        )
         await self.send(
-            f"{self.bot.thank()} {FMT_USER}! I've set up a notifier for new Craigslist listings on"
-            " this channel."
+            f"{self.bot.thank()} {FMT_USER}! I've set up a search for new Craigslist listings on"
+            f" this channel.{created_notifier_part}"
         )
 
         return await super().finish()
 
-    def configure_notifier(self) -> None:
+    def configure_notifier(self) -> bool:
         search_params = dict(self._answers)
         area = get_areas()[search_params.pop("area")]
         search_params["site"] = area.site
@@ -98,12 +106,18 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
         _logger.debug(f"Parsed search spec from answers {search_spec}")
 
         channel = self.initiating_message.channel
+        created_notifier = False
         if channel.id not in self.bot.notifiers:
             _logger.info(f"Creating notifier for channel {channel.id}")
             self.bot.notifiers[channel.id] = DiscordNotifier(
-                channel, self.bot.monitor, notification_frequency=timedelta(minutes=1)
+                channel,
+                self.bot.monitor,
+                notification_frequency=timedelta(seconds=settings.notification_frequency_seconds),
+                paused=True,
             )
+            created_notifier = True
         self.bot.notifiers[channel.id].create_search(search_spec)
+        return created_notifier
 
     @property
     def available_areas(self) -> str:
