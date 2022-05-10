@@ -7,6 +7,9 @@ services:
     build:
       dockerfile: ./docker/service.dockerfile
       context: .
+      target: prod
+      args:
+        app_env: prod
     stop_grace_period: "2s"
     volumes:
       - ./:/app
@@ -40,6 +43,12 @@ services:
 
   devbox:
     <<: *service
+    build:
+      dockerfile: ./docker/service.dockerfile
+      context: .
+      target: dev
+      args:
+        app_env: dev
     entrypoint: /bin/bash
     stdin_open: true
     tty: true
