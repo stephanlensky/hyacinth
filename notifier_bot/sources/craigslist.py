@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
+from functools import cache
 from typing import Any
 
 from craigslist import CraigslistForSale
@@ -43,6 +44,7 @@ class CraigslistSource(ListingSource):
     def recommended_polling_interval(cls, search_params: SearchParams) -> int:
         return settings.craigslist_poll_interval_seconds
 
+    @cache
     def get_craigslist_client(self) -> CraigslistForSale:
         filters = {
             "search_nearby": 2,
