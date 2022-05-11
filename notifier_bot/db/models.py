@@ -26,3 +26,10 @@ class DbListing(Base):
             search_spec_json=search_spec.json(),
             listing_json=listing.json(),
         )
+
+
+class DbDiscordNotifierConfig(Base):
+    __tablename__ = "notifier"
+
+    channel_id = Column(Integer, primary_key=True)
+    config_json = Column(Text)

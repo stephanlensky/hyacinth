@@ -131,12 +131,24 @@ class DiscordNotifier(ListingNotifier):
         self.channel = channel
 
     async def notify(self, listing: Listing) -> None:
+        match (listing.location.city, listing.location.state):
+            case (None, None):
+                location_part = ""
+            case (city, None):
+                location_part = f" - {city}"
+            case (None, state):
+                location_part = f" - {state}"
+            case (city, state):
+                location_part = f" - {city}, {state}"
+        description = (
+            f"**${int(listing.price)}{location_part} ({int(listing.distance_miles)} mi."
+            f" away)**\n\n{listing.body}"
+        )
+
         embed = discord.Embed(
             title=listing.title,
             url=listing.url,
-            description=listing.body[:2048],
+            description=description[:2048],
             timestamp=listing.updated_at.astimezone(timezone.utc),
         )
-        if listing.image_urls:
-            embed.set_image(url=listing.image_urls[0])
         await self.channel.send(embed=embed)

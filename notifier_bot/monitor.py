@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from apscheduler.job import Job
 from apscheduler.triggers.interval import IntervalTrigger
 
+from notifier_bot.celery import app
 from notifier_bot.db.listing import get_last_listing as get_last_listing_from_db
 from notifier_bot.db.listing import get_listings as get_listings_from_db
 from notifier_bot.models import Listing, SearchSpec, SearchSpecSource
@@ -20,6 +21,9 @@ class MarketplaceMonitor:
     def __init__(self) -> None:
         self.scheduler = get_scheduler()
         self.search_spec_job_mapping: dict[SearchSpec, Job] = {}
+
+        # delete all pending tasks from previous runs of the bot
+        app.control.purge()
 
     def register_search(self, search_spec: SearchSpec) -> None:
         # check if there is already a scheduled task to poll this search
