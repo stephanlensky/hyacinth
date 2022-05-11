@@ -112,14 +112,6 @@ class DiscordNotifierBot:
 
         return deco
 
-    @staticmethod
-    def configuration_command(r: str) -> Callable[..., Any]:
-        def deco(f: Callable[..., Any]) -> Callable[..., Any]:
-            _discord_notifier_bot_commands[re.compile(r, re.IGNORECASE)] = f
-            return f
-
-        return deco
-
     def affirm(self) -> str:
         return random.choice(AFFIRMATIONS)
 
