@@ -160,11 +160,12 @@ class DiscordNotifierBot:
         if not await self.check_notifier_exists(message):
             return
 
-        self.notifiers[message.channel.id].unpause()
+        # send response first to ensure resumed notifications appear after this message
         await message.channel.send(
             f"{self.affirm()} {message.author.mention}, I've resumed notifications for this"
             " channel."
         )
+        self.notifiers[message.channel.id].unpause()
 
     @command(r"filter (?P<field>.+?) (?P<filter_command>.+)")
     async def filter(self, message: Message, command: re.Match) -> None:
