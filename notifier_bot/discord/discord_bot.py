@@ -8,12 +8,11 @@ import traceback
 from typing import Any, Callable, Pattern
 
 import discord
-import wrapt
 from discord import Message, Thread
 
-from notifier_bot.discord.notifier_setup import CraigslistNotifierSetupInteraction
+from notifier_bot.discord.commands.filter import filter_, is_valid_string_filter_command
+from notifier_bot.discord.commands.notify import create_notifier
 from notifier_bot.discord.thread_interaction import ThreadInteraction
-from notifier_bot.models import SearchSpecSource
 from notifier_bot.monitor import MarketplaceMonitor
 from notifier_bot.notifier import DiscordNotifier
 from notifier_bot.settings import get_settings
@@ -86,28 +85,38 @@ class DiscordNotifierBot:
         for pattern in _discord_notifier_bot_commands:
             match = pattern.match(command)
             if match:
-                await _discord_notifier_bot_commands[pattern](self, message, match)
+                try:
+                    await _discord_notifier_bot_commands[pattern](self, message, match)
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    await message.channel.send(
+                        f"Sorry {message.author.mention}! Something went wrong while running your"
+                        f" command.```{traceback.format_exc()}```"
+                    )
+                    raise
                 break
 
     @staticmethod
     def command(r: str) -> Callable[..., Any]:
         """
-        Helper decorator for defining bot commands matching a given regex.
+        Decorator for defining bot commands matching a given regex.
 
         After receiving a command, the bot will call the first @command function whose regex
         matches the given command.
         """
 
         def deco(f: Callable[..., Any]) -> Callable[..., Any]:
-            @wrapt.decorator
-            def wrapper(
-                wrapped: Callable[..., Any], _instance: Any, args: list, kwargs: dict
-            ) -> Any:
-                return wrapped(*args, **kwargs)
-
             _discord_notifier_bot_commands[re.compile(r, re.IGNORECASE)] = f
+            return f
 
-            return wrapper
+        return deco
+
+    @staticmethod
+    def configuration_command(r: str) -> Callable[..., Any]:
+        def deco(f: Callable[..., Any]) -> Callable[..., Any]:
+            _discord_notifier_bot_commands[re.compile(r, re.IGNORECASE)] = f
+            return f
 
         return deco
 
@@ -134,40 +143,7 @@ class DiscordNotifierBot:
             params = dict((p.split("=") for p in command.group("params").split(" ")))
         _logger.info(f"Received request to create notifier from {source_name=} {params=}")
 
-        try:
-            source = SearchSpecSource(source_name)
-        except ValueError:
-            await message.channel.send(
-                f'Sorry {message.author.mention}, "{source_name}" is not a source I support sending'
-                " notifications for."
-            )
-            return
-
-        if source == SearchSpecSource.CRAIGSLIST:
-            setup_interaction = CraigslistNotifierSetupInteraction(self, message)
-        else:
-            raise NotImplementedError(f"{source_name} not implemented")
-
-        if not params:
-            await setup_interaction.begin()
-            self.active_threads[setup_interaction.thread_id] = setup_interaction
-        else:
-            try:
-                setup_interaction.answers = params
-                await setup_interaction.finish()
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                await message.channel.send(
-                    f"Sorry {message.author.mention}! Something went wrong while configuring the"
-                    f" notifier for this channel. ```{traceback.format_exc()}```"
-                )
-                raise
-
-            await message.channel.send(
-                f"{self.affirm()} {message.author.mention}, I've created a search for you"
-                f" based on following parameters:\n```{params}```"
-            )
+        await create_notifier(self, message, source_name, params)
 
     @command(r"(pause|stop)")
     async def pause(self, message: Message, _command: re.Match) -> None:
@@ -189,6 +165,22 @@ class DiscordNotifierBot:
             f"{self.affirm()} {message.author.mention}, I've resumed notifications for this"
             " channel."
         )
+
+    @command(r"filter (?P<field>.+?) (?P<filter_command>.+)")
+    async def filter(self, message: Message, command: re.Match) -> None:
+        if not await self.check_notifier_exists(message):
+            return
+
+        field: str = command.group("field")
+        filter_command: str = command.group("filter_command")
+        notifier = self.notifiers[message.channel.id]
+
+        # allow shorthand to default to "title" field
+        if is_valid_string_filter_command(f"{field} {filter_command}"):
+            filter_command = f"{field} {filter_command}"
+            field = "title"
+
+        await filter_(self, message, notifier, field, filter_command)
 
 
 async def start() -> None:

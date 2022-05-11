@@ -8,6 +8,7 @@ from boolean import (
     TOKEN_SYMBOL,
     TOKEN_TRUE,
     BooleanAlgebra,
+    Expression,
     ParseError,
     boolean,
 )
@@ -71,9 +72,11 @@ class BooleanRuleAlgebra(BooleanAlgebra):
             "*": TOKEN_AND,
             "&": TOKEN_AND,
             "and": TOKEN_AND,
+            "AND": TOKEN_AND,
             "+": TOKEN_OR,
             "|": TOKEN_OR,
             "or": TOKEN_OR,
+            "OR": TOKEN_OR,
             "~": TOKEN_NOT,
             "!": TOKEN_NOT,
             "not": TOKEN_NOT,
@@ -137,3 +140,30 @@ class BooleanRuleAlgebra(BooleanAlgebra):
             i -= i - j
 
         return tokens
+
+
+algebra = BooleanRuleAlgebra()
+
+
+def apply_rules(rules: list[Expression], text: str) -> bool:
+    total_rule = None
+    for _, rule in rules:
+        if total_rule is None:
+            total_rule = rule
+        else:
+            total_rule = total_rule | rule
+
+    if total_rule is None:
+        return False
+
+    symbols = total_rule.get_symbols()
+    subs = {}
+    for sym in symbols:
+        subs[sym] = algebra.TRUE if sym.obj in text else algebra.FALSE
+    total_rule = total_rule.subs(subs)
+    simplified_rule = total_rule.simplify()
+    return bool(simplified_rule)
+
+
+def parse_rule(rule_str: str) -> Expression:
+    return algebra.parse(rule_str)

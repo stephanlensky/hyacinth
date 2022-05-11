@@ -1,7 +1,6 @@
 import logging
 import re
 import traceback
-from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from discord import Message
@@ -110,10 +109,7 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
         if channel.id not in self.bot.notifiers:
             _logger.info(f"Creating notifier for channel {channel.id}")
             self.bot.notifiers[channel.id] = DiscordNotifier(
-                channel,
-                self.bot.monitor,
-                notification_frequency=timedelta(seconds=settings.notification_frequency_seconds),
-                paused=True,
+                channel, self.bot.monitor, DiscordNotifier.Config(paused=True)
             )
             created_notifier = True
         self.bot.notifiers[channel.id].create_search(search_spec)

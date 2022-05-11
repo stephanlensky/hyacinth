@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 from abc import ABC, abstractmethod
@@ -6,8 +8,9 @@ from typing import TYPE_CHECKING
 
 import discord
 from apscheduler.triggers.interval import IntervalTrigger
+from pydantic import BaseModel
 
-from notifier_bot.models import Listing, SearchSpec
+from notifier_bot.models import Listing, ListingFieldFilter, SearchSpec
 from notifier_bot.monitor import MarketplaceMonitor
 from notifier_bot.scheduler import get_scheduler
 from notifier_bot.settings import get_settings
@@ -20,43 +23,40 @@ _logger = logging.getLogger(__name__)
 
 
 class ListingNotifier(ABC):
-    def __init__(
-        self,
-        monitor: MarketplaceMonitor,
-        notification_frequency: timedelta = timedelta(minutes=10),
-        paused: bool = False,
-    ) -> None:
+    class Config(BaseModel):
+        notification_frequency_seconds: int = settings.notification_frequency_seconds
+        paused: bool = False
+        active_searches: list[SearchSpec] = []
+        last_notified: dict[SearchSpec, datetime] = {}
+        filters: dict[str, ListingFieldFilter] = {}
+
+    def __init__(self, monitor: MarketplaceMonitor, config: ListingNotifier.Config) -> None:
         self.monitor = monitor
-        self.notification_frequency: timedelta = notification_frequency
+        self.config = config
 
         self.scheduler = get_scheduler()
-
-        self.paused = paused
-        self.active_searches: list[SearchSpec] = []
-        self.last_notified: dict[SearchSpec, datetime] = {}
-
         self.notify_job = self.scheduler.add_job(
             self._notify_new_listings,
-            IntervalTrigger(seconds=self.notification_frequency.seconds),
+            IntervalTrigger(seconds=self.config.notification_frequency_seconds),
             next_run_time=datetime.now(),
         )
-        if self.paused:
+        if self.config.paused:
             self.scheduler.pause_job(self.notify_job.id)
 
     def create_search(self, search_spec: SearchSpec, last_notified: datetime | None = None) -> None:
         self.monitor.register_search(search_spec)
-        self.active_searches.append(search_spec)
+        self.config.active_searches.append(search_spec)
 
         if last_notified is None:
             last_notified = datetime.now() - timedelta(hours=settings.notifier_backdate_time_hours)
-        self.last_notified[search_spec] = last_notified
+        self.config.last_notified[search_spec] = last_notified
 
     def pause(self) -> None:
-        self.paused = True
+        self.config.paused = True
         self.scheduler.pause_job(self.notify_job.id)
 
     def unpause(self) -> None:
-        self.paused = False
+        self.config.paused = False
         self.scheduler.resume_job(self.notify_job.id)
 
     async def _get_new_listings_for_search(self, search: SearchSpec) -> list[Listing]:
@@ -67,11 +67,11 @@ class ListingNotifier(ABC):
         that have not been seen before.
         """
         new_listings = await self.monitor.get_listings(
-            search, after_time=self.last_notified[search]
+            search, after_time=self.config.last_notified[search]
         )
         if new_listings:
-            self.last_notified[search] = new_listings[0].created_at
-            _logger.debug(f"Most recent listing was found at {self.last_notified[search]}")
+            self.config.last_notified[search] = new_listings[0].created_at
+            _logger.debug(f"Most recent listing was found at {self.config.last_notified[search]}")
 
         return new_listings
 
@@ -80,11 +80,11 @@ class ListingNotifier(ABC):
         Collect all new listings from all active searches
         """
         listings: list[Listing] = []
-        for search in self.active_searches:
+        for search in self.config.active_searches:
             listings.extend(await self._get_new_listings_for_search(search))
 
         _logger.debug(
-            f"Found {len(listings)} to notify for across {len(self.active_searches)} active"
+            f"Found {len(listings)} to notify for across {len(self.config.active_searches)} active"
             " searches"
         )
         listings.sort(key=lambda l: l.updated_at)
@@ -123,12 +123,11 @@ class LoggerNotifier(ListingNotifier):
 class DiscordNotifier(ListingNotifier):
     def __init__(
         self,
-        channel: "MessageableChannel",
+        channel: MessageableChannel,
         monitor: MarketplaceMonitor,
-        notification_frequency: timedelta = timedelta(minutes=10),
-        paused: bool = False,
+        config: ListingNotifier.Config,
     ) -> None:
-        super().__init__(monitor, notification_frequency, paused)
+        super().__init__(monitor, config)
         self.channel = channel
 
     async def notify(self, listing: Listing) -> None:
