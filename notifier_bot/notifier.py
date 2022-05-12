@@ -10,7 +10,7 @@ import discord
 from apscheduler.triggers.interval import IntervalTrigger
 from pydantic import BaseModel
 
-from notifier_bot.models import Listing, ListingFieldFilter, SearchSpec
+from notifier_bot.models import Listing, SearchSpec, StringFieldFilter
 from notifier_bot.monitor import MarketplaceMonitor
 from notifier_bot.scheduler import get_scheduler
 from notifier_bot.settings import get_settings
@@ -32,7 +32,7 @@ class ListingNotifier(ABC):
         notification_frequency_seconds: int = settings.notification_frequency_seconds
         paused: bool = False
         active_searches: list[ActiveSearch] = []
-        filters: dict[str, ListingFieldFilter] = {}
+        filters: dict[str, StringFieldFilter] = {}
 
     def __init__(self, monitor: MarketplaceMonitor, config: ListingNotifier.Config) -> None:
         self.monitor = monitor

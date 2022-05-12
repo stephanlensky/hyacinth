@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from boolean import (
@@ -151,7 +153,7 @@ algebra = BooleanRuleAlgebra()
 
 
 def apply_rules(rules: list[Rule], text: str) -> bool:
-    total_rule = None
+    total_rule: Expression = None
     for rule in rules:
         if total_rule is None:
             total_rule = rule

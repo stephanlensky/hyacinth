@@ -87,8 +87,8 @@ class Rule(BaseModel):
     def expression(self) -> Expression:
         return self._expression
 
-    def __init__(self, **kwargs: dict[str, Any]) -> None:
-        super().__init__(**kwargs)
+    def __init__(self, **data: Any) -> None:
+        super().__init__(**data)
         self._expression = parse_rule(self.rule_str)
 
 
