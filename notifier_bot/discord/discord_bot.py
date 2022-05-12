@@ -8,13 +8,16 @@ import traceback
 from typing import Any, Callable, Pattern
 
 import discord
+import wrapt
 from discord import Message, Thread
 
+from notifier_bot.db.notifier import get_discord_notifiers as get_discord_notifiers_from_db
+from notifier_bot.db.notifier import save_discord_notifier as save_discord_notifier_to_db
 from notifier_bot.discord.commands.filter import filter_, is_valid_string_filter_command
 from notifier_bot.discord.commands.notify import create_notifier
 from notifier_bot.discord.thread_interaction import ThreadInteraction
 from notifier_bot.monitor import MarketplaceMonitor
-from notifier_bot.notifier import DiscordNotifier
+from notifier_bot.notifier import DiscordNotifier, ListingNotifier
 from notifier_bot.settings import get_settings
 
 settings = get_settings()
@@ -41,6 +44,12 @@ class DiscordNotifierBot:
         self.notifiers: dict[int, DiscordNotifier] = {}  # channel ID -> notifier
         self.active_threads: dict[int, ThreadInteraction] = {}  # thread ID -> setup handler
 
+    def load_saved_notifiers(self) -> None:
+        notifiers = get_discord_notifiers_from_db(self.client, self.monitor)
+        for notifier in notifiers:
+            self.notifiers[notifier.channel.id] = notifier
+        _logger.info(f"Loaded {len(notifiers)} saved notifiers from the database!")
+
     def get_command_from_message(self, message: Message) -> str | None:
         """
         Get the bot command string from a raw Discord message.
@@ -64,7 +73,6 @@ class DiscordNotifierBot:
         # if this bot sent the message, never do anything
         if message.author == self.client.user:
             return
-        _logger.debug(f"Received message: {message}")
 
         # if the message is in a thread with an ongoing setup process, pass it to the setup handler
         if isinstance(message.channel, Thread) and message.channel.id in self.active_threads:
@@ -92,7 +100,7 @@ class DiscordNotifierBot:
                 except Exception:
                     await message.channel.send(
                         f"Sorry {message.author.mention}! Something went wrong while running your"
-                        f" command.```{traceback.format_exc()}```"
+                        f" command.```{traceback.format_exc()[-1900:]}```"
                     )
                     raise
                 break
@@ -111,6 +119,41 @@ class DiscordNotifierBot:
             return f
 
         return deco
+
+    @staticmethod
+    def pass_notifier(*, save_changes: bool = False) -> Callable[..., Any]:
+        """
+        Decorator for use with commands that operate on a notifier in the current channel.
+
+        Commands decorated with this will receive an instance of the notifier in the current
+        channel in their arguments, and the notifier's existence will be checked prior to command
+        execution.
+
+        If the command makes any changes to the notifier's configuration, these will be persisted
+        to the database if "save_changes" is True.
+        """
+
+        @wrapt.decorator
+        async def wrapper(
+            wrapped: Callable[..., Any], _instance: Any, args: list, kwargs: dict
+        ) -> Any:
+            instance: DiscordNotifierBot = args[0]
+            message: Message = args[1]
+            if not await instance.check_notifier_exists(message):
+                return None
+
+            notifier = instance.notifiers[message.channel.id]
+            if save_changes:
+                # save original notifier config so we can detect if it was changed
+                old_notifier_config = notifier.config.copy(deep=True)
+            result = await wrapped(*args, notifier, **kwargs)
+            if save_changes and notifier.config != old_notifier_config:
+                _logger.debug(f"Notifier for {message.channel} was changed, saving!")
+                save_discord_notifier_to_db(notifier)
+
+            return result
+
+        return wrapper
 
     def affirm(self) -> str:
         return random.choice(AFFIRMATIONS)
@@ -138,35 +181,30 @@ class DiscordNotifierBot:
         await create_notifier(self, message, source_name, params)
 
     @command(r"(pause|stop)")
-    async def pause(self, message: Message, _command: re.Match) -> None:
-        if not await self.check_notifier_exists(message):
-            return
-
-        self.notifiers[message.channel.id].pause()
+    @pass_notifier(save_changes=True)
+    async def pause(self, message: Message, _command: re.Match, notifier: ListingNotifier) -> None:
+        notifier.pause()
         await message.channel.send(
             f"{self.affirm()} {message.author.mention}, I've paused notifications for this channel."
         )
 
     @command(r"(unpause|start)")
-    async def unpause(self, message: Message, _command: re.Match) -> None:
-        if not await self.check_notifier_exists(message):
-            return
-
+    @pass_notifier(save_changes=True)
+    async def unpause(
+        self, message: Message, _command: re.Match, notifier: ListingNotifier
+    ) -> None:
         # send response first to ensure resumed notifications appear after this message
         await message.channel.send(
             f"{self.affirm()} {message.author.mention}, I've resumed notifications for this"
             " channel."
         )
-        self.notifiers[message.channel.id].unpause()
+        notifier.unpause()
 
     @command(r"filter (?P<field>.+?) (?P<filter_command>.+)")
-    async def filter(self, message: Message, command: re.Match) -> None:
-        if not await self.check_notifier_exists(message):
-            return
-
+    @pass_notifier(save_changes=True)
+    async def filter(self, message: Message, command: re.Match, notifier: ListingNotifier) -> None:
         field: str = command.group("field")
         filter_command: str = command.group("filter_command")
-        notifier = self.notifiers[message.channel.id]
 
         # allow shorthand to default to "title" field
         if is_valid_string_filter_command(f"{field} {filter_command}"):
@@ -186,6 +224,7 @@ async def start() -> None:
     @client.event
     async def on_ready() -> None:
         _logger.info(f"We have logged in as {client.user}")
+        discord_bot.load_saved_notifiers()
 
     @client.event
     async def on_message(message: Message) -> None:

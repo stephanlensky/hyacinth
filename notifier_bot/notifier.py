@@ -22,12 +22,16 @@ settings = get_settings()
 _logger = logging.getLogger(__name__)
 
 
+class ActiveSearch(BaseModel):
+    spec: SearchSpec
+    last_notified: datetime
+
+
 class ListingNotifier(ABC):
     class Config(BaseModel):
         notification_frequency_seconds: int = settings.notification_frequency_seconds
         paused: bool = False
-        active_searches: list[SearchSpec] = []
-        last_notified: dict[SearchSpec, datetime] = {}
+        active_searches: list[ActiveSearch] = []
         filters: dict[str, ListingFieldFilter] = {}
 
     def __init__(self, monitor: MarketplaceMonitor, config: ListingNotifier.Config) -> None:
@@ -43,13 +47,20 @@ class ListingNotifier(ABC):
         if self.config.paused:
             self.scheduler.pause_job(self.notify_job.id)
 
-    def create_search(self, search_spec: SearchSpec, last_notified: datetime | None = None) -> None:
-        self.monitor.register_search(search_spec)
-        self.config.active_searches.append(search_spec)
+        for search in config.active_searches:
+            self.monitor.register_search(search.spec)
 
+    def create_search(self, search_spec: SearchSpec, last_notified: datetime | None = None) -> None:
         if last_notified is None:
             last_notified = datetime.now() - timedelta(hours=settings.notifier_backdate_time_hours)
-        self.config.last_notified[search_spec] = last_notified
+        self.config.active_searches.append(
+            ActiveSearch(
+                spec=search_spec,
+                last_notified=last_notified,
+            )
+        )
+
+        self.monitor.register_search(search_spec)
 
     def pause(self) -> None:
         self.config.paused = True
@@ -59,19 +70,17 @@ class ListingNotifier(ABC):
         self.config.paused = False
         self.scheduler.resume_job(self.notify_job.id)
 
-    async def _get_new_listings_for_search(self, search: SearchSpec) -> list[Listing]:
+    async def _get_new_listings_for_search(self, search: ActiveSearch) -> list[Listing]:
         """
         Get new listings for a given search.
 
         Updates the last_notified time for this search, so repeated calls will return only listings
         that have not been seen before.
         """
-        new_listings = await self.monitor.get_listings(
-            search, after_time=self.config.last_notified[search]
-        )
+        new_listings = await self.monitor.get_listings(search.spec, after_time=search.last_notified)
         if new_listings:
-            self.config.last_notified[search] = new_listings[0].created_at
-            _logger.debug(f"Most recent listing was found at {self.config.last_notified[search]}")
+            search.last_notified = new_listings[0].created_at
+            _logger.debug(f"Most recent listing was found at {search.last_notified}")
 
         return new_listings
 
@@ -109,6 +118,9 @@ class ListingNotifier(ABC):
             for listing in not_yet_notified_listings:
                 await self.notify(listing)
             raise
+
+    def __del__(self) -> None:
+        self.scheduler.remove_job(self.notify_job.id)
 
     @abstractmethod
     async def notify(self, listing: Listing) -> None:

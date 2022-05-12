@@ -65,7 +65,7 @@ async def _handle_string_filter_command(
     if command := re.match(INCLUDE_COMMAND, filter_command):
         rule = command.group("rule")
         expression = parse_rule(rule)
-        field_filter.rules.append(Rule(rule_str=rule, expression=expression))
+        field_filter.rules.append(Rule(rule_str=rule))
         await message.channel.send(
             f"{bot.affirm()} {message.author.mention}, I've added the following"
             f" rule:\n```{repr(expression)}```"

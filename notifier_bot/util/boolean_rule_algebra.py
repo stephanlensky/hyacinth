@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from boolean import (
     TOKEN_AND,
     TOKEN_FALSE,
@@ -12,6 +14,9 @@ from boolean import (
     ParseError,
     boolean,
 )
+
+if TYPE_CHECKING:
+    from notifier_bot.models import Rule
 
 
 class BooleanRuleAlgebra(BooleanAlgebra):
@@ -145,13 +150,13 @@ class BooleanRuleAlgebra(BooleanAlgebra):
 algebra = BooleanRuleAlgebra()
 
 
-def apply_rules(rules: list[Expression], text: str) -> bool:
+def apply_rules(rules: list[Rule], text: str) -> bool:
     total_rule = None
-    for _, rule in rules:
+    for rule in rules:
         if total_rule is None:
             total_rule = rule
         else:
-            total_rule = total_rule | rule
+            total_rule = total_rule | rule.expression
 
     if total_rule is None:
         return False

@@ -6,10 +6,10 @@ from enum import Enum
 from typing import Any, Generic, TypeVar
 
 from boolean import Expression
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 from pydantic.generics import GenericModel
 
-from notifier_bot.util.boolean_rule_algebra import apply_rules
+from notifier_bot.util.boolean_rule_algebra import apply_rules, parse_rule
 
 T = TypeVar("T")
 
@@ -81,10 +81,15 @@ class SearchSpec(HashableBaseModel):
 
 class Rule(BaseModel):
     rule_str: str
-    expression: Expression
+    _expression: Expression = PrivateAttr()
 
-    class Config:
-        arbitrary_types_allowed = True
+    @property
+    def expression(self) -> Expression:
+        return self._expression
+
+    def __init__(self, **kwargs: dict[str, Any]) -> None:
+        super().__init__(**kwargs)
+        self._expression = parse_rule(self.rule_str)
 
 
 class ListingFieldFilter(ABC, GenericModel, Generic[T]):

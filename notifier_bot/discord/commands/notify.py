@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-import traceback
 from typing import TYPE_CHECKING
 
 from discord import Message
@@ -34,18 +32,8 @@ async def create_notifier(
         await setup_interaction.begin()
         bot.active_threads[setup_interaction.thread_id] = setup_interaction
     else:
-        try:
-            setup_interaction.answers = params
-            await setup_interaction.finish()
-        except asyncio.CancelledError:
-            raise
-        except Exception:
-            await message.channel.send(
-                f"Sorry {message.author.mention}! Something went wrong while configuring the"
-                f" notifier for this channel. ```{traceback.format_exc()}```"
-            )
-            raise
-
+        setup_interaction.answers = params
+        await setup_interaction.finish()
         await message.channel.send(
             f"{bot.affirm()} {message.author.mention}, I've created a search for you"
             f" based on following parameters:\n```{params}```"
