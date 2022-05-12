@@ -153,7 +153,7 @@ algebra = BooleanRuleAlgebra()
 
 
 def apply_rules(rules: list[Rule], text: str) -> bool:
-    total_rule: Expression = None
+    total_rule: Expression | None = None
     for rule in rules:
         if total_rule is None:
             total_rule = rule
