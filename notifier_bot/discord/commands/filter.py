@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Type
 
 from discord import Message
 
-from notifier_bot.models import Listing, ListingFieldFilter, Rule, StringFieldFilter
+from notifier_bot.models import Listing, Rule, StringFieldFilter
 from notifier_bot.notifier import ListingNotifier
 from notifier_bot.util.boolean_rule_algebra import parse_rule
 
