@@ -39,7 +39,7 @@ async def filter_(
         raise NotImplementedError("filter type not implemented")
 
 
-def make_filter(listing_cls: Type[Listing], field: str) -> ListingFieldFilter:
+def make_filter(listing_cls: Type[Listing], field: str) -> StringFieldFilter:
     if field not in listing_cls.__fields__:
         raise ValueError(f"Given field does not exist on {listing_cls}")
 
