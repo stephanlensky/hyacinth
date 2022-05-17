@@ -41,7 +41,7 @@ services:
     volumes:
       - redis:/data
 
-  devbox:
+  devbox: &devbox
     <<: *service
     build:
       dockerfile: ./docker/service.dockerfile
@@ -52,6 +52,10 @@ services:
     entrypoint: /bin/bash
     stdin_open: true
     tty: true
+
+  test:
+    <<: *devbox
+    command: ["docker/scripts/test-docker-entrypoint.sh"]
 
   pgweb:
     image: sosedoff/pgweb

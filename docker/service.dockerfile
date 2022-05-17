@@ -21,8 +21,8 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
 RUN apt-get update && apt-get install -y build-essential
 RUN useradd -ms /bin/bash joyvan
 USER joyvan
-RUN pip install poetry
 ENV PATH="/home/joyvan/.local/bin:${PATH}"
+RUN pip install poetry
 COPY . .
 
 FROM shared-setup as dev

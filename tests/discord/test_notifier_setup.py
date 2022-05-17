@@ -27,6 +27,7 @@ def test_craigslist_notifier_setup_interaction__creates_proper_search_spec(
     bot_mock = mocker.Mock()
     bot_mock.notifiers = {}
     initiating_message_mock = make_message()
+    save_notifier_mock = mocker.patch(f"{MODULE}.save_discord_notifier_to_db")
     setup_interaction = CraigslistNotifierSetupInteraction(bot_mock, initiating_message_mock)
 
     setup_interaction.answers = {
@@ -48,7 +49,8 @@ def test_craigslist_notifier_setup_interaction__creates_proper_search_spec(
             min_price=SOME_MIN_PRICE,
             max_price=SOME_MAX_PRICE,
             max_distance_miles=SOME_MAX_DISTANCE,
-        ).dict(),
+        ),
     )
 
     create_search_mock.assert_called_once_with(search_spec)
+    save_notifier_mock.assert_called_once()
