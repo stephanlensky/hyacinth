@@ -18,7 +18,7 @@ packages = [
 notifier-bot = "notifier_bot._entry:run_discord_bot"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.10,<3.11"
 requests = "^2.27.1"
 "boolean.py" = "^3.8"
 "discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "277d35c" }
@@ -33,6 +33,9 @@ psycopg2 = "^2.9.3"
 celery = "^5.2.6"
 redis = "^4.2.2"
 APScheduler = "^3.9.1"
+geopandas = "^0.10.2"
+Rtree = "^1.0.0"
+scipy = "^1.8.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"
@@ -77,7 +80,10 @@ module = [
     "boolean",
     "discord.*",
     "wrapt",
-    "apscheduler.*"
+    "apscheduler.*",
+    "geopandas.*",
+    "pandas.*",
+    "scipy.*"
 ]
 ignore_missing_imports = true
 
@@ -87,4 +93,6 @@ filterwarnings = [
     # kombu produces this warning in the latest version
     # fixed in latest git, waiting on version release
     'ignore:SelectableGroups dict interface is deprecated. Use select.:DeprecationWarning',
+    # geopandas has not yet switched off of distutils
+    'ignore:distutils Version classes are deprecated:DeprecationWarning'
 ]

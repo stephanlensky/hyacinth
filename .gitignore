@@ -1,3 +1,9 @@
+# geographic spatial data for local geocoding
+geography/
+
+# testpad file
+testpad.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

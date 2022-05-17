@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     postgres_user: str
     postgres_password: str
 
+    # the local geocoding implementation does not require a google API key, but requires first
+    # downloading some spatial data and only supports the US
+    use_local_geocoder: bool = False
+
+    # google geocoding credentials
     google_geocoding_api_key: str
 
     # craigslist data files
