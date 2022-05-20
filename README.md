@@ -24,6 +24,7 @@ After this, enable local reverse geocoding with the `USE_LOCAL_GEOCODER` environ
 USE_LOCAL_GEOCODER=true
 ```
 
+Note that currently only reverse geocoding US locations is supported by the local geocoder.
 
 ## Local development
 
