@@ -20,7 +20,7 @@ notifier-bot = "notifier_bot._entry:run_discord_bot"
 [tool.poetry.dependencies]
 python = ">=3.10,<3.11"
 requests = "^2.27.1"
-"boolean.py" = "^3.8"
+"boolean.py" = "^4.0"
 "discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "277d35c" }
 python-craigslist = { git = "https://github.com/stephanlensky/python-craigslist.git" }
 geopy = "^2.2.0"
