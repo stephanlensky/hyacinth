@@ -11,6 +11,7 @@ import discord
 import wrapt
 from discord import Message, Thread
 
+from notifier_bot.db.notifier import delete_all_discord_notifiers_from_channel
 from notifier_bot.db.notifier import get_discord_notifiers as get_discord_notifiers_from_db
 from notifier_bot.db.notifier import save_discord_notifier as save_discord_notifier_to_db
 from notifier_bot.discord.commands.filter import filter_, is_valid_string_filter_command
@@ -179,6 +180,18 @@ class DiscordNotifierBot:
         _logger.info(f"Received request to create notifier from {source_name=} {params=}")
 
         await create_notifier(self, message, source_name, params)
+
+    @command(r"delete")
+    @pass_notifier(save_changes=False)
+    async def delete_notifier(
+        self, message: Message, _command: re.Match, _notifier: ListingNotifier
+    ) -> None:
+        _logger.info(f"Deleting all notifiers from channel {message.channel.id}")
+        deleted_count = delete_all_discord_notifiers_from_channel(message.channel.id)
+        await message.channel.send(
+            f"{self.affirm()} {message.author.mention}, I've deleted {deleted_count} notifiers from"
+            " this channel."
+        )
 
     @command(r"(pause|stop)")
     @pass_notifier(save_changes=True)

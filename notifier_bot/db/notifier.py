@@ -55,3 +55,18 @@ def get_discord_notifiers(
         session.commit()
 
     return notifiers
+
+
+def delete_all_discord_notifiers_from_channel(channel_id: int) -> int:
+    with Session() as session:
+        count = (
+            session.query(DbDiscordNotifier)
+            .filter(DbDiscordNotifier.channel_id == str(channel_id))
+            .count()
+        )
+        session.query(DbDiscordNotifier).filter(
+            DbDiscordNotifier.channel_id == str(channel_id)
+        ).delete()
+        session.commit()
+
+    return count
