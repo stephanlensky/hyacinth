@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Generic, TypeVar
 
 from boolean import Expression
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, root_validator
 from pydantic.generics import GenericModel
 
 from notifier_bot.util.boolean_rule_algebra import apply_rules, parse_rule
@@ -64,19 +64,20 @@ class SearchSpec(HashableBaseModel):
     source: SearchSpecSource
     search_params: SearchParams
 
+    @root_validator(pre=True)
     @classmethod
-    def parse_obj(cls, obj: dict[str, Any]) -> SearchSpec:
-        source = obj["source"]
-        search_params = obj["search_params"]
+    def parse_search_params(cls, values: dict[str, Any]) -> dict[str, Any]:
+        source = values["source"]
+        search_params = values["search_params"]
         if source == SearchSpecSource.CRAIGSLIST:
             # pylint: disable=import-outside-toplevel
             from notifier_bot.sources.craigslist import CraigslistSearchParams
 
-            return SearchSpec(
-                source=source, search_params=CraigslistSearchParams.parse_obj(search_params)
-            )
+            values["search_params"] = CraigslistSearchParams.parse_obj(search_params)
+        else:
+            raise NotImplementedError(f"{source} not implemented")
 
-        raise NotImplementedError(f"{source} not implemented")
+        return values
 
 
 class Rule(BaseModel):
