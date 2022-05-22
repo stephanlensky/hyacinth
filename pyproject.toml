@@ -2,7 +2,7 @@
 name = "marketplace-notifier-bot"
 version = "0.0.1"
 description = "A Discord bot to send notifications for marketplace (Craigslist, Facebook) postings based on complex matching rules."
-authors = ["Stephan Lensky <stephanl.public@gmail.com>"]
+authors = ["Stephan Lensky <public@slensky.com>"]
 readme = "README.md"
 license = "GPL-3.0-only"
 homepage = "https://github.com/stephanlensky/marketplace-notifier-bot"
