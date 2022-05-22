@@ -21,6 +21,7 @@ class MarketplaceMonitor:
     def __init__(self) -> None:
         self.scheduler = get_scheduler()
         self.search_spec_job_mapping: dict[SearchSpec, Job] = {}
+        self.search_spec_ref_count: dict[SearchSpec, int] = {}
 
         # delete all pending tasks from previous runs of the bot
         app.control.purge()
@@ -28,6 +29,7 @@ class MarketplaceMonitor:
     def register_search(self, search_spec: SearchSpec) -> None:
         # check if there is already a scheduled task to poll this search
         if search_spec in self.search_spec_job_mapping:
+            self.search_spec_ref_count[search_spec] += 1
             return
 
         # otherwise schedule a job to periodically check results and write them to the db
@@ -37,6 +39,17 @@ class MarketplaceMonitor:
             trigger=IntervalTrigger(self._get_polling_interval(search_spec)),
             next_run_time=datetime.now(),
         )
+        self.search_spec_ref_count[search_spec] = 1
+
+    def remove_search(self, search_spec: SearchSpec) -> None:
+        self.search_spec_ref_count[search_spec] -= 1
+        if self.search_spec_ref_count[search_spec] == 0:
+            # there are no more notifiers looking at this search, remove the monitoring job
+            _logger.debug(f"Removing search from monitor {search_spec}")
+            job = self.search_spec_job_mapping[search_spec]
+            self.scheduler.remove_job(job.id)
+            del self.search_spec_job_mapping[search_spec]
+            del self.search_spec_ref_count[search_spec]
 
     async def get_listings(self, search_spec: SearchSpec, after_time: datetime) -> list[Listing]:
         return get_listings_from_db(search_spec, after_time)

@@ -120,7 +120,13 @@ class ListingNotifier(ABC):
             raise
 
     def __del__(self) -> None:
+        self.cleanup()
+
+    def cleanup(self):
+        _logger.debug("Cleaning up notifier!")
         self.scheduler.remove_job(self.notify_job.id)
+        for search in self.config.active_searches:
+            self.monitor.remove_search(search.spec)
 
     @abstractmethod
     async def notify(self, listing: Listing) -> None:

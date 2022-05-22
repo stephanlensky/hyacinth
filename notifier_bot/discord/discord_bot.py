@@ -189,6 +189,8 @@ class DiscordNotifierBot:
         self, message: Message, _command: re.Match, _notifier: ListingNotifier
     ) -> None:
         _logger.info(f"Deleting all notifiers from channel {message.channel.id}")
+        del self.notifiers[message.channel.id]
+        _notifier.cleanup()
         deleted_count = delete_all_discord_notifiers_from_channel(message.channel.id)
         await message.channel.send(
             f"{self.affirm()} {message.author.mention}, I've deleted {deleted_count} notifiers from"
