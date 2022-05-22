@@ -91,12 +91,22 @@ class CraigslistSource(ListingSource):
             if listing_json["geotag"]
             else get_geotag_from_url(listing_json["url"])
         )
+        if listing_json["price"] is None:  # item is free
+            listing_json["price"] = "0"
+        listing_json["price"] = re.sub(r"[\$,]", "", str(listing_json["price"]))
+        try:
+            price = int(str(listing_json["price"]))
+        except ValueError:
+            _logger.error(
+                f"Couldn't parse price {listing_json['price']} for listing {listing_json['url']}!"
+            )
+            price = 0
         return Listing(
             title=listing_json["name"],
             url=listing_json["url"],
             body=listing_json["body"],
             image_urls=listing_json["images"],
-            price=int(re.sub(r"[\$,]", "", listing_json["price"])),
+            price=price,
             location=reverse_geotag(geotag),
             distance_miles=distance_miles(self.search_params.home_lat_long, geotag),
             created_at=datetime.strptime(listing_json["created"], CRAIGSLIST_DATE_FORMAT),

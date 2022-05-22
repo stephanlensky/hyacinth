@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Any, Callable
 from unittest.mock import Mock
 
 import pytest
@@ -16,7 +16,7 @@ def make_message(content: str = "") -> Mock:
 
 
 @pytest.fixture(params=["google", "local"])
-def reverse_geocode_function(request) -> Callable[[tuple[float, float]], Location]:
+def reverse_geocode_function(request: Any) -> Callable[[tuple[float, float]], Location]:
     if request.param == "google":
         return geo._reverse_geotag_google  # pylint: disable=protected-access
     return geo._reverse_geotag_local  # pylint: disable=protected-access
