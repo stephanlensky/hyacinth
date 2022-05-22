@@ -14,6 +14,7 @@ from discord import Message, Thread
 from notifier_bot.db.notifier import delete_all_discord_notifiers_from_channel
 from notifier_bot.db.notifier import get_discord_notifiers as get_discord_notifiers_from_db
 from notifier_bot.db.notifier import save_discord_notifier as save_discord_notifier_to_db
+from notifier_bot.discord.commands.edit import edit
 from notifier_bot.discord.commands.filter import filter_, is_valid_string_filter_command
 from notifier_bot.discord.commands.notify import create_notifier
 from notifier_bot.discord.commands.show import show
@@ -227,10 +228,21 @@ class DiscordNotifierBot:
 
         await filter_(self, message, notifier, field, filter_command)
 
-    @command(r"(show|show-filter)")
+    @command(r"(show-filter|show)")
     @pass_notifier(save_changes=False)
     async def show(self, message: Message, _command: re.Match, notifier: ListingNotifier) -> None:
         await show(self, message, notifier)
+
+    @command(r"(edit-filter|edit)( (?P<field>.+))?")
+    @pass_notifier(save_changes=True)
+    async def edit(self, message: Message, command: re.Match, notifier: ListingNotifier) -> None:
+        field: str | None = command.group("field")
+
+        # allow shorthand to default to "title" field
+        if field is None:
+            field = "title"
+
+        await edit(self, message, notifier, field)
 
 
 async def start() -> None:

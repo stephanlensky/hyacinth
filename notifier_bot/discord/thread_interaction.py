@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -9,12 +10,14 @@ if TYPE_CHECKING:
 FMT_USER = "{user}"
 DEFAULT_ERROR_RESPONSE = f"Sorry {FMT_USER}, I didn't recognize that. Please try again."
 
+_logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class Question:
     key: str
     prompt: str
-    validator: Callable[[str], Any]
+    validator: Callable[[str], Any] | None
     error_response: str | None = None
 
 
@@ -24,7 +27,7 @@ class ThreadInteraction:
         bot: "DiscordNotifierBot",
         initiating_message: Message,
         thread_title: str,
-        first_message: str,
+        first_message: str | None,
         questions: list[Question],
     ) -> None:
         self.bot = bot
@@ -81,7 +84,8 @@ class ThreadInteraction:
         self.thread = await self.initiating_message.create_thread(
             name=self.thread_title, auto_archive_duration=60
         )
-        await self.send(self.first_message)
+        if self.first_message:
+            await self.send(self.first_message)
         await self.prompt()
 
     async def finish(self) -> dict[str, Any]:
@@ -103,10 +107,12 @@ class ThreadInteraction:
 
     def _add_answer(self, answer: str) -> bool:
         question = self.unaswered_questions[0]
-        try:
-            validated = question.validator(answer)  # type: ignore
-        except Exception:
-            return False
+        if question.validator is not None:
+            try:
+                validated = question.validator(answer)  # type: ignore
+            except Exception as e:
+                _logger.debug(f"Validator threw exception {str(e)}")
+                return False
 
         self._answers[question.key] = validated
         self.unaswered_questions.pop(0)
