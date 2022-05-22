@@ -16,6 +16,7 @@ from notifier_bot.db.notifier import get_discord_notifiers as get_discord_notifi
 from notifier_bot.db.notifier import save_discord_notifier as save_discord_notifier_to_db
 from notifier_bot.discord.commands.filter import filter_, is_valid_string_filter_command
 from notifier_bot.discord.commands.notify import create_notifier
+from notifier_bot.discord.commands.show import show
 from notifier_bot.discord.thread_interaction import ThreadInteraction
 from notifier_bot.monitor import MarketplaceMonitor
 from notifier_bot.notifier import DiscordNotifier, ListingNotifier
@@ -225,6 +226,11 @@ class DiscordNotifierBot:
             field = "title"
 
         await filter_(self, message, notifier, field, filter_command)
+
+    @command(r"(show|show-filter)")
+    @pass_notifier(save_changes=False)
+    async def show(self, message: Message, _command: re.Match, notifier: ListingNotifier) -> None:
+        await show(self, message, notifier)
 
 
 async def start() -> None:
