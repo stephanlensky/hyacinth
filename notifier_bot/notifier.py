@@ -70,6 +70,21 @@ class ListingNotifier(ABC):
         self.config.paused = False
         self.scheduler.resume_job(self.notify_job.id)
 
+    def should_notify_listing(self, listing: Listing) -> bool:
+        """
+        Apply filters to the listing to see if we should notify the user.
+        """
+        for filter_field, filter_ in self.config.filters.items():
+            if not hasattr(listing, filter_field):
+                # this filter is for a field not present in this type of listing
+                continue
+            listing_field = getattr(listing, filter_field)
+
+            if not filter_.test(listing_field):
+                return False
+
+        return True
+
     async def _get_new_listings_for_search(self, search: ActiveSearch) -> list[Listing]:
         """
         Get new listings for a given search.
@@ -103,6 +118,8 @@ class ListingNotifier(ABC):
         not_yet_notified_listings: list[Listing] = []
         try:
             listings = await self._get_new_listings()
+            # apply filters
+            listings = list(filter(self.should_notify_listing, listings))
             not_yet_notified_listings = listings.copy()
             for listing in listings:
                 await self.notify(listing)
