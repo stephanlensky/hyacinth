@@ -5,15 +5,15 @@ import logging
 import random
 import re
 import traceback
-from typing import Any, Callable, Pattern
+from typing import Any, Callable, Coroutine, Pattern
 
 import discord
 import wrapt
 from discord import Member, Message, Reaction, Thread, User
 
-from notifier_bot.db.notifier import delete_all_discord_notifiers_from_channel
 from notifier_bot.db.notifier import get_discord_notifiers as get_discord_notifiers_from_db
 from notifier_bot.db.notifier import save_discord_notifier as save_discord_notifier_to_db
+from notifier_bot.discord.commands.delete import delete_notifier
 from notifier_bot.discord.commands.edit import edit
 from notifier_bot.discord.commands.filter import filter_, is_valid_string_filter_command
 from notifier_bot.discord.commands.notify import create_notifier
@@ -32,6 +32,8 @@ AFFIRMATIONS = ["Okay", "Sure", "Sounds good", "No problem", "Roger that", "Got 
 THANKS = [*AFFIRMATIONS, "Thanks", "Thank you"]
 DEBUG_COMMAND_PREFIX = r"(d|debug) "
 
+ReactionHandler = Callable[[Reaction, User | Member], Coroutine[None, Any, Any]]
+
 
 class DiscordNotifierBot:
     def __init__(
@@ -46,6 +48,7 @@ class DiscordNotifierBot:
         self.monitor = MarketplaceMonitor()
         self.notifiers: dict[int, DiscordNotifier] = {}  # channel ID -> notifier
         self.active_threads: dict[int, ThreadInteraction] = {}  # thread ID -> setup handler
+        self.reaction_handlers: dict[int, ReactionHandler] = {}  # message ID -> reaction handler
 
     def load_saved_notifiers(self) -> None:
         notifiers = get_discord_notifiers_from_db(self.client, self.monitor)
@@ -108,7 +111,7 @@ class DiscordNotifierBot:
                     raise
                 break
 
-    async def on_reaction_added(self, reaction: Reaction, _user: Member | User) -> None:
+    async def on_reaction_added(self, reaction: Reaction, user: Member | User) -> None:
         message = reaction.message
         if isinstance(message.channel, Thread) and message.channel.id in self.active_threads:
             thread_interaction = self.active_threads[message.channel.id]
@@ -117,6 +120,10 @@ class DiscordNotifierBot:
                 _logger.debug(f"Completed interaction on thread {message.channel.id}")
                 await thread_interaction.finish()
                 self.active_threads.pop(message.channel.id)
+            return
+
+        if message.id in self.reaction_handlers:
+            await self.reaction_handlers[message.id](reaction, user)
 
     @staticmethod
     def command(r: str) -> Callable[..., Any]:
@@ -196,16 +203,9 @@ class DiscordNotifierBot:
     @command(r"delete")
     @pass_notifier(save_changes=False)
     async def delete_notifier(
-        self, message: Message, _command: re.Match, _notifier: ListingNotifier
+        self, message: Message, _command: re.Match, notifier: ListingNotifier
     ) -> None:
-        _logger.info(f"Deleting all notifiers from channel {message.channel.id}")
-        del self.notifiers[message.channel.id]
-        _notifier.cleanup()
-        deleted_count = delete_all_discord_notifiers_from_channel(message.channel.id)
-        await message.channel.send(
-            f"{self.affirm()} {message.author.mention}, I've deleted {deleted_count} notifiers from"
-            " this channel."
-        )
+        await delete_notifier(self, message, notifier)
 
     @command(r"(pause|stop)")
     @pass_notifier(save_changes=True)
