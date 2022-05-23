@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable
 
-from discord import Message, Thread
+from discord import Message, Reaction, Thread
 
 if TYPE_CHECKING:
     from notifier_bot.discord.discord_bot import DiscordNotifierBot
@@ -19,6 +19,7 @@ class Question:
     prompt: str
     validator: Callable[[str], Any] | None
     error_response: str | None = None
+    accepted_reaction_responses: tuple[str] = ()
 
 
 class ThreadInteraction:
@@ -94,8 +95,17 @@ class ThreadInteraction:
         return self._answers
 
     async def on_message(self, message: Message) -> None:
+        await self._accept_answer(message.content)
+
+    async def on_reaction(self, reaction: Reaction) -> None:
         question = self.unaswered_questions[0]
-        if not self._add_answer(message.content):
+        if reaction.emoji not in question.accepted_reaction_responses:
+            return
+        await self._accept_answer(reaction.emoji)
+
+    async def _accept_answer(self, answer: str) -> None:
+        question = self.unaswered_questions[0]
+        if not self._add_answer(answer):
             error_response = DEFAULT_ERROR_RESPONSE
             if question.error_response:
                 error_response = question.error_response

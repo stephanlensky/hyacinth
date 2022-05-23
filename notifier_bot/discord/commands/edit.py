@@ -59,8 +59,12 @@ class EditStringFilterInteraction(ThreadInteraction):
                 ),
                 Question(
                     key="requested_change",
-                    prompt="What would you like to change this filter to?",
+                    prompt=(
+                        "What would you like to change this filter to? If you'd like to delete the"
+                        " filter, just react with an \u274C (`:x:`)."
+                    ),
                     validator=self.validate_change,
+                    accepted_reaction_responses=("\u274C",),  # :x:
                 ),
             ],
         )
@@ -68,6 +72,7 @@ class EditStringFilterInteraction(ThreadInteraction):
     async def finish(self) -> dict[str, Any]:
         selection = self.answers["selection"]
         requested_change = self.answers["requested_change"]
+        should_delete = requested_change == ""
 
         choice_type: str
         original_repr: str
@@ -76,25 +81,40 @@ class EditStringFilterInteraction(ThreadInteraction):
             choice_type = "boolean filter rule"
             original_repr = repr(self.filter_.rules[selection])
             change_repr = repr(requested_change.expression)
-            self.filter_.rules[selection] = requested_change
+            if should_delete:
+                self.filter_.rules.pop(selection)
+            else:
+                self.filter_.rules[selection] = requested_change
 
         elif selection < len(self.filter_.rules) + len(self.filter_.preremoval_rules):
             selection -= len(self.filter_.rules)
             choice_type = "preremoval rule"
             original_repr = self.filter_.preremoval_rules[selection]
-            self.filter_.preremoval_rules[selection] = requested_change
+            if should_delete:
+                self.filter_.preremoval_rules.pop(selection)
+            else:
+                self.filter_.preremoval_rules[selection] = requested_change
 
         else:
             selection -= len(self.filter_.rules) + len(self.filter_.preremoval_rules)
             choice_type = "disallowed word"
             original_repr = self.filter_.disallowed_words[selection]
-            self.filter_.disallowed_words[selection] = requested_change
+            if should_delete:
+                self.filter_.disallowed_words.pop(selection)
+            else:
+                self.filter_.disallowed_words[selection] = requested_change
 
         save_discord_notifier(self.bot.notifiers[self.initiating_message.channel.id])
-        await self.send(
-            f"{self.bot.affirm()} {FMT_USER}, I've changed the following"
-            f" {choice_type}:```{original_repr} -> {change_repr}```"
-        )
+        if should_delete:
+            await self.send(
+                f"{self.bot.affirm()} {FMT_USER}, I've deleted the following"
+                f" {choice_type}:```{original_repr}```"
+            )
+        else:
+            await self.send(
+                f"{self.bot.affirm()} {FMT_USER}, I've changed the following"
+                f" {choice_type}:```{original_repr} -> {change_repr}```"
+            )
 
         return await super().finish()
 
@@ -114,7 +134,10 @@ class EditStringFilterInteraction(ThreadInteraction):
 
         return selection
 
-    def validate_change(self, v: str) -> Rule | str:
+    def validate_change(self, v: str) -> str | Rule:
+        if v == "\u274C":
+            return ""
+
         if self.answers["selection"] < len(self.filter_.rules):
             return Rule(rule_str=v)
 

@@ -9,7 +9,7 @@ from typing import Any, Callable, Pattern
 
 import discord
 import wrapt
-from discord import Message, Thread
+from discord import Member, Message, Reaction, Thread, User
 
 from notifier_bot.db.notifier import delete_all_discord_notifiers_from_channel
 from notifier_bot.db.notifier import get_discord_notifiers as get_discord_notifiers_from_db
@@ -107,6 +107,16 @@ class DiscordNotifierBot:
                     )
                     raise
                 break
+
+    async def on_reaction_added(self, reaction: Reaction, _user: Member | User) -> None:
+        message = reaction.message
+        if isinstance(message.channel, Thread) and message.channel.id in self.active_threads:
+            thread_interaction = self.active_threads[message.channel.id]
+            await thread_interaction.on_reaction(reaction)
+            if thread_interaction.completed:
+                _logger.debug(f"Completed interaction on thread {message.channel.id}")
+                await thread_interaction.finish()
+                self.active_threads.pop(message.channel.id)
 
     @staticmethod
     def command(r: str) -> Callable[..., Any]:
@@ -250,7 +260,9 @@ class DiscordNotifierBot:
 async def start() -> None:
     loop = asyncio.get_running_loop()
 
-    intents = discord.Intents(messages=True, guild_messages=True, message_content=True, guilds=True)
+    intents = discord.Intents(
+        messages=True, guild_messages=True, message_content=True, guilds=True, reactions=True
+    )
     client = discord.Client(intents=intents, loop=loop)
     discord_bot: DiscordNotifierBot = DiscordNotifierBot(client)
 
@@ -262,5 +274,9 @@ async def start() -> None:
     @client.event
     async def on_message(message: Message) -> None:
         await discord_bot.on_message(message)
+
+    @client.event
+    async def on_reaction_add(reaction: Reaction, user: Member | User) -> None:
+        await discord_bot.on_reaction_added(reaction, user)
 
     await client.start(settings.discord_token)
