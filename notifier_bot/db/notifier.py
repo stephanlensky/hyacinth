@@ -39,7 +39,6 @@ def get_discord_notifiers(
         notifiers: list[DiscordNotifier] = []
         stale_notifier_channel_ids: list = []
         for db_notifier in db_notifiers:
-            print(db_notifier)
             notifier = db_notifier.to_notifier(client, monitor)
             if notifier is not None:
                 notifiers.append(notifier)
