@@ -156,7 +156,7 @@ def apply_rules(rules: list[Rule], text: str) -> bool:
     total_rule: Expression | None = None
     for rule in rules:
         if total_rule is None:
-            total_rule = rule
+            total_rule = rule.expression
         else:
             total_rule = total_rule | rule.expression
 
