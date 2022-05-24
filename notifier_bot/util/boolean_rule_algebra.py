@@ -27,10 +27,10 @@ class BooleanRuleAlgebra(BooleanAlgebra):
 
     The subclass implements the following changes to the tokenize method:
         - Don't interpret '0' and '1' as true/false
-        - Interpret words as a single token
+        - Interpret sequences of multiple words as a single token
     """
 
-    def tokenize(self, expr: boolean.basestring) -> list:
+    def tokenize(self, expr: str) -> list:
         """
         Return an iterable of 3-tuple describing each token given an expression
         unicode string.
@@ -69,7 +69,7 @@ class BooleanRuleAlgebra(BooleanAlgebra):
             - True symbols: 1 and True
             - False symbols: 0, False and None
         """
-        if not isinstance(expr, boolean.basestring):
+        if not isinstance(expr, str):
             raise TypeError(f"expr must be string but it is {type(expr)}.")
 
         # mapping of lowercase token strings to a token type id for the standard
