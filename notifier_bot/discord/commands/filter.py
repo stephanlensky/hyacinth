@@ -63,7 +63,7 @@ async def _handle_string_filter_command(
     bot: DiscordNotifierBot, message: Message, field_filter: StringFieldFilter, filter_command: str
 ) -> None:
     if command := re.match(INCLUDE_COMMAND, filter_command):
-        rule = command.group("rule")
+        rule = command.group("rule").lower()
         expression = parse_rule(rule)
         field_filter.rules.append(Rule(rule_str=rule))
         await message.channel.send(
@@ -71,14 +71,14 @@ async def _handle_string_filter_command(
             f" rule:\n```{repr(expression)}```"
         )
     elif command := re.match(EXCLUDE_COMMAND, filter_command):
-        disallowed = command.group("disallowed")
+        disallowed = command.group("disallowed").lower()
         field_filter.disallowed_words.append(disallowed)
         await message.channel.send(
             f"{bot.affirm()} {message.author.mention}, I won't notify you about any listings that"
             f" include the following word:\n```{disallowed}```"
         )
     elif command := re.match(PREREMOVE_COMMAND, filter_command):
-        preremove = command.group("preremove")
+        preremove = command.group("preremove").lower()
         field_filter.preremoval_rules.append(preremove)
         await message.channel.send(
             f"{bot.affirm()} {message.author.mention}, I've added the following"

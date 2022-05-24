@@ -105,6 +105,8 @@ class StringFieldFilter(ListingFieldFilter[str]):
     disallowed_words: list[str] = []  # auto fail any listing with these words
 
     def test(self, listing_field: str) -> bool:
+        listing_field = listing_field.lower()
+
         for preremoval_rule in self.preremoval_rules:
             listing_field = listing_field.replace(preremoval_rule, "")
 
