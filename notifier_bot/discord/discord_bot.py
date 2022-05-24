@@ -16,6 +16,7 @@ from notifier_bot.db.notifier import save_notifier as save_notifier_to_db
 from notifier_bot.discord.commands.delete import delete_notifier
 from notifier_bot.discord.commands.edit import edit
 from notifier_bot.discord.commands.filter import filter_, is_valid_string_filter_command
+from notifier_bot.discord.commands.help import show_help
 from notifier_bot.discord.commands.notify import create_notifier
 from notifier_bot.discord.commands.show import show
 from notifier_bot.discord.thread_interaction import ThreadInteraction
@@ -80,7 +81,8 @@ class DiscordNotifierBot:
         if message.author == self.client.user:
             return
 
-        # if the message is in a thread with an ongoing setup process, pass it to the setup handler
+        # if the message is in a thread with an ongoing interaction, pass it to the interaction
+        # message handler
         if isinstance(message.channel, Thread) and message.channel.id in self.active_threads:
             thread_interaction = self.active_threads[message.channel.id]
             await thread_interaction.on_message(message)
@@ -112,6 +114,8 @@ class DiscordNotifierBot:
                 break
 
     async def on_reaction_added(self, reaction: Reaction, user: Member | User) -> None:
+        # if the reaction is on a message in a thread with an active interaction, pass it to the
+        # interaction reaction handler
         message = reaction.message
         if isinstance(message.channel, Thread) and message.channel.id in self.active_threads:
             thread_interaction = self.active_threads[message.channel.id]
@@ -122,6 +126,7 @@ class DiscordNotifierBot:
                 self.active_threads.pop(message.channel.id)
             return
 
+        # otherwise check if there are any registered handlers for reactions on this message
         if message.id in self.reaction_handlers:
             await self.reaction_handlers[message.id](reaction, user)
 
@@ -189,6 +194,10 @@ class DiscordNotifierBot:
             )
             return False
         return True
+
+    @command(r"help")
+    async def help(self, message: Message, _command: re.Match) -> None:
+        await show_help(self, message, None)
 
     @command(r"notify (?P<source_name>.+?)( (?P<params>(\w+=[\w-]+ ?)+)$|$)")
     async def create_notifier(self, message: Message, command: re.Match) -> None:
