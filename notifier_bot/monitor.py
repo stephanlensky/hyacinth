@@ -29,10 +29,12 @@ class MarketplaceMonitor:
     def register_search(self, search_spec: SearchSpec) -> None:
         # check if there is already a scheduled task to poll this search
         if search_spec in self.search_spec_job_mapping:
+            _logger.info("Search already exists, not registering new search")
             self.search_spec_ref_count[search_spec] += 1
             return
 
         # otherwise schedule a job to periodically check results and write them to the db
+        _logger.info(f"Scheduling job for new search! {search_spec}")
         self.search_spec_job_mapping[search_spec] = self.scheduler.add_job(
             self.poll_search,
             kwargs={"search_spec": search_spec},
