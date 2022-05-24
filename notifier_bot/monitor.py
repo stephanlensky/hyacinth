@@ -75,7 +75,8 @@ class MarketplaceMonitor:
             )
 
         # start a celery task in a separate worker to get and save the listings
-        get_and_save_listings.delay(search_spec.json(), after_time.isoformat())
+        result = get_and_save_listings.delay(search_spec.json(), after_time.isoformat())
+        result.forget()
 
     def __del__(self) -> None:
         for search_spec in self.search_spec_job_mapping:
