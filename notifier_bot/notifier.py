@@ -128,6 +128,7 @@ class ListingNotifier(ABC):
                 f"Filtered out {unfiltered_listings_length - len(listings)} listings. Notifying"
                 f" user of remaining {len(listings)} listings."
             )
+
             not_yet_notified_listings = listings.copy()
             for listing in listings:
                 await self.notify(listing)
