@@ -118,8 +118,16 @@ class ListingNotifier(ABC):
         not_yet_notified_listings: list[Listing] = []
         try:
             listings = await self._get_new_listings()
+            if not listings:
+                return
+
             # apply filters
+            unfiltered_listings_length = len(listings)
             listings = list(filter(self.should_notify_listing, listings))
+            _logger.debug(
+                f"Filtered out {unfiltered_listings_length - len(listings)} listings. Notifying"
+                f" user of remaining {len(listings)} listings."
+            )
             not_yet_notified_listings = listings.copy()
             for listing in listings:
                 await self.notify(listing)
@@ -139,7 +147,7 @@ class ListingNotifier(ABC):
     def __del__(self) -> None:
         self.cleanup()
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         _logger.debug("Cleaning up notifier!")
         self.scheduler.remove_job(self.notify_job.id)
         for search in self.config.active_searches:
