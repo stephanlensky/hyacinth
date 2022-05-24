@@ -10,18 +10,23 @@ from notifier_bot.db.session import Session
 
 if TYPE_CHECKING:
     from notifier_bot.monitor import MarketplaceMonitor
-    from notifier_bot.notifier import DiscordNotifier
+    from notifier_bot.notifier import DiscordNotifier, ListingNotifier
 
 _logger = logging.getLogger(__name__)
 
 
-def save_discord_notifier(notifier: DiscordNotifier) -> None:
-    with Session() as session:
-        session.query(DbDiscordNotifier).filter(
-            DbDiscordNotifier.channel_id == str(notifier.channel.id)
-        ).delete()
-        session.add(DbDiscordNotifier.from_notifier(notifier))
-        session.commit()
+def save_notifier(notifier: ListingNotifier) -> None:
+    from notifier_bot.notifier import DiscordNotifier  # avoid circular import
+
+    if isinstance(notifier, DiscordNotifier):
+        with Session() as session:
+            session.query(DbDiscordNotifier).filter(
+                DbDiscordNotifier.channel_id == str(notifier.channel.id)
+            ).delete()
+            session.add(DbDiscordNotifier.from_notifier(notifier))
+            session.commit()
+    else:
+        raise NotImplementedError(f"{type(notifier)} not implemented")
 
 
 def get_discord_notifiers(

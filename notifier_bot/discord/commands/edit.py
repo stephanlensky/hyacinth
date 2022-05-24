@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from discord import Message
 
-from notifier_bot.db.notifier import save_discord_notifier
+from notifier_bot.db.notifier import save_notifier
 from notifier_bot.discord.thread_interaction import FMT_USER, Question, ThreadInteraction
 from notifier_bot.models import Rule, StringFieldFilter
 from notifier_bot.notifier import ListingNotifier
@@ -104,7 +104,7 @@ class EditStringFilterInteraction(ThreadInteraction):
             else:
                 self.filter_.disallowed_words[selection] = requested_change
 
-        save_discord_notifier(self.bot.notifiers[self.initiating_message.channel.id])
+        save_notifier(self.bot.notifiers[self.initiating_message.channel.id])
         if should_delete:
             await self.send(
                 f"{self.bot.affirm()} {FMT_USER}, I've deleted the following"

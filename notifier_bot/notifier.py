@@ -10,6 +10,7 @@ import discord
 from apscheduler.triggers.interval import IntervalTrigger
 from pydantic import BaseModel
 
+from notifier_bot.db.notifier import save_notifier
 from notifier_bot.models import Listing, SearchSpec, StringFieldFilter
 from notifier_bot.monitor import MarketplaceMonitor
 from notifier_bot.scheduler import get_scheduler
@@ -106,6 +107,8 @@ class ListingNotifier(ABC):
         listings: list[Listing] = []
         for search in self.config.active_searches:
             listings.extend(await self._get_new_listings_for_search(search))
+        if listings:
+            save_notifier(self)
 
         _logger.debug(
             f"Found {len(listings)} to notify for across {len(self.config.active_searches)} active"

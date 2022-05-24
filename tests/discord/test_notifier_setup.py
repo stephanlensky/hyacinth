@@ -27,7 +27,7 @@ def test_craigslist_notifier_setup_interaction__creates_proper_search_spec(
     bot_mock = mocker.Mock()
     bot_mock.notifiers = {}
     initiating_message_mock = make_message()
-    save_notifier_mock = mocker.patch(f"{MODULE}.save_discord_notifier_to_db")
+    save_notifier_mock = mocker.patch(f"{MODULE}.save_notifier_to_db")
     setup_interaction = CraigslistNotifierSetupInteraction(bot_mock, initiating_message_mock)
 
     setup_interaction.answers = {

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from discord import Message
 
-from notifier_bot.db.notifier import save_discord_notifier as save_discord_notifier_to_db
+from notifier_bot.db.notifier import save_notifier as save_notifier_to_db
 from notifier_bot.discord.thread_interaction import FMT_USER, Question, ThreadInteraction
 from notifier_bot.models import SearchSpec, SearchSpecSource
 from notifier_bot.notifier import DiscordNotifier
@@ -114,7 +114,7 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
             )
             created_notifier = True
         self.bot.notifiers[channel.id].create_search(search_spec)
-        save_discord_notifier_to_db(self.bot.notifiers[channel.id])
+        save_notifier_to_db(self.bot.notifiers[channel.id])
         return created_notifier
 
     @property

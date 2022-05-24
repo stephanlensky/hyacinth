@@ -12,7 +12,7 @@ import wrapt
 from discord import Member, Message, Reaction, Thread, User
 
 from notifier_bot.db.notifier import get_discord_notifiers as get_discord_notifiers_from_db
-from notifier_bot.db.notifier import save_discord_notifier as save_discord_notifier_to_db
+from notifier_bot.db.notifier import save_notifier as save_notifier_to_db
 from notifier_bot.discord.commands.delete import delete_notifier
 from notifier_bot.discord.commands.edit import edit
 from notifier_bot.discord.commands.filter import filter_, is_valid_string_filter_command
@@ -169,7 +169,7 @@ class DiscordNotifierBot:
             result = await wrapped(*args, notifier, **kwargs)
             if save_changes and notifier.config != old_notifier_config:
                 _logger.debug(f"Notifier for {message.channel} was changed, saving!")
-                save_discord_notifier_to_db(notifier)
+                save_notifier_to_db(notifier)
 
             return result
 
