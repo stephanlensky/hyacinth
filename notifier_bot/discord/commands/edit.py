@@ -79,7 +79,7 @@ class EditStringFilterInteraction(ThreadInteraction):
         change_repr: str = requested_change
         if selection < len(self.filter_.rules):
             choice_type = "boolean filter rule"
-            original_repr = repr(self.filter_.rules[selection])
+            original_repr = repr(self.filter_.rules[selection].expression)
             change_repr = repr(requested_change.expression)
             if should_delete:
                 self.filter_.rules.pop(selection)
