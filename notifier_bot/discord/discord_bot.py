@@ -19,6 +19,7 @@ from notifier_bot.discord.commands.filter import filter_, is_valid_string_filter
 from notifier_bot.discord.commands.help import show_help
 from notifier_bot.discord.commands.notify import create_notifier
 from notifier_bot.discord.commands.show import show
+from notifier_bot.discord.commands.stats import stats
 from notifier_bot.discord.thread_interaction import ThreadInteraction
 from notifier_bot.monitor import MarketplaceMonitor
 from notifier_bot.notifier import DiscordNotifier, ListingNotifier
@@ -264,6 +265,13 @@ class DiscordNotifierBot:
             field = "title"
 
         await edit(self, message, notifier, field)
+
+    @command(r"stats( (?P<channel><#\d+>))?")
+    async def stats(self, message: Message, command: re.Match) -> None:
+        channel_id: int | None = None
+        if command.group("channel"):
+            channel_id = message.channel_mentions[0].id
+        await stats(self, message, channel_id)
 
 
 async def start() -> None:

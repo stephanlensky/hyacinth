@@ -148,9 +148,6 @@ class ListingNotifier(ABC):
                 await self.notify(listing)
             raise
 
-    def __del__(self) -> None:
-        self.cleanup()
-
     def cleanup(self) -> None:
         _logger.debug("Cleaning up notifier!")
         self.scheduler.remove_job(self.notify_job.id)
