@@ -38,7 +38,7 @@ class MarketplaceMonitor:
         self.search_spec_job_mapping[search_spec] = self.scheduler.add_job(
             self.poll_search,
             kwargs={"search_spec": search_spec},
-            trigger=IntervalTrigger(self._get_polling_interval(search_spec)),
+            trigger=IntervalTrigger(seconds=self._get_polling_interval(search_spec)),
             next_run_time=datetime.now(),
         )
         self.search_spec_ref_count[search_spec] = 1
