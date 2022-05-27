@@ -149,7 +149,7 @@ class BooleanRuleAlgebra(BooleanAlgebra):
         return tokens
 
 
-algebra = BooleanRuleAlgebra()
+algebra = BooleanRuleAlgebra(allowed_in_token=(".", ":", "_", "-"))
 
 
 def apply_rules(rules: list[Rule], text: str) -> bool:
