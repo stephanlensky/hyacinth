@@ -195,4 +195,6 @@ class DiscordNotifier(ListingNotifier):
             description=description[:2048],
             timestamp=listing.updated_at.astimezone(timezone.utc),
         )
+        if listing.image_urls:
+            embed.set_image(url=listing.thumbnail_url)
         await self.channel.send(embed=embed)

@@ -45,6 +45,7 @@ class Listing(BaseModel):
     url: str
     body: str
     image_urls: list[str]
+    thumbnail_url: str | None = None
     price: float
     location: Location
     distance_miles: float

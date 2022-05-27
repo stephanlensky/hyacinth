@@ -41,6 +41,17 @@ class Settings(BaseSettings):
     # how often to check the database for new listings to notify each channel about
     notification_frequency_seconds: int = 60
 
+    # for some sources, thumbnails may be mirrored to s3 before display
+    # this is to account for some websites blocking discord from loading the image preview in the
+    # notification embed
+    # requires s3 credentials
+    enable_s3_thumbnail_mirroring: bool = False
+    s3_image_mirror_expiration_days = 1
+    s3_url: str | None
+    s3_access_key: str | None
+    s3_secret_key: str | None
+    s3_bucket: str | None
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

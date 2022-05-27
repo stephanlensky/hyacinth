@@ -14,6 +14,7 @@ from notifier_bot.settings import get_settings
 from notifier_bot.sources.abc import ListingSource
 from notifier_bot.util.craigslist import get_geotag_from_url
 from notifier_bot.util.geo import distance_miles, reverse_geotag
+from notifier_bot.util.s3 import mirror_image
 
 settings = get_settings()
 _logger = logging.getLogger(__name__)
@@ -101,11 +102,18 @@ class CraigslistSource(ListingSource):
                 f"Couldn't parse price {listing_json['price']} for listing {listing_json['url']}!"
             )
             price = 0
+
+        image_urls: list[str] = listing_json["images"]
+        thumbnail_url: str | None = image_urls[0] if image_urls else None
+        if thumbnail_url and settings.enable_s3_thumbnail_mirroring:
+            thumbnail_url = mirror_image(thumbnail_url)
+
         return Listing(
             title=listing_json["name"],
             url=listing_json["url"],
             body=listing_json["body"],
-            image_urls=listing_json["images"],
+            image_urls=image_urls,
+            thumbnail_url=thumbnail_url,
             price=price,
             location=reverse_geotag(geotag),
             distance_miles=distance_miles(self.search_params.home_lat_long, geotag),

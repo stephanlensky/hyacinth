@@ -36,6 +36,7 @@ APScheduler = "^3.9.1"
 geopandas = "^0.10.2"
 Rtree = "^1.0.0"
 scipy = "^1.8.0"
+boto3 = "^1.23.8"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"
@@ -49,6 +50,7 @@ docformatter = "^1.4"
 types-requests = "^2.27.15"
 SQLAlchemy = {extras = ["mypy"], version = "^1.4.35"}
 celery-types = "^0.12.0"
+boto3-stubs = {extras = ["s3"], version = "^1.23.8"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -83,7 +85,7 @@ module = [
     "apscheduler.*",
     "geopandas.*",
     "pandas.*",
-    "scipy.*"
+    "scipy.*",
 ]
 ignore_missing_imports = true
 
