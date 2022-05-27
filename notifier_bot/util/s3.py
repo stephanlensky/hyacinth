@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import datetime, timedelta
 from functools import cache
 from pathlib import PosixPath
 from typing import TYPE_CHECKING
@@ -50,7 +51,14 @@ def mirror_image(url: str) -> str:
     if file_extension:
         image_key = f"{image_key}{file_extension}"
 
+    expiration_time = datetime.now() + timedelta(days=settings.s3_image_mirror_expiration_days)
+
     s3 = get_s3_client()
-    s3.put_object(Bucket=settings.s3_bucket, Key=image_key, Body=image_response.content)
+    s3.put_object(
+        Bucket=settings.s3_bucket,
+        Key=image_key,
+        Body=image_response.content,
+        Expires=expiration_time,
+    )
 
     return f"{settings.s3_url}/{settings.s3_bucket}/{image_key}"
