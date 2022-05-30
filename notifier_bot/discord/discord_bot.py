@@ -200,6 +200,18 @@ class DiscordNotifierBot:
     async def help(self, message: Message, _command: re.Match) -> None:
         await show_help(self, message, None)
 
+    @command(r"notify")
+    async def invalid_create_notifier_command(self, message: Message, _command: re.Match) -> None:
+        """
+        This is a common mistake for first users of the bot.
+
+        Handle as a command and provide an appropriate error message.
+        """
+        await message.channel.send(
+            f"Sorry {message.author.mention}, you must provide a source for notifications! For"
+            " example, `$notify craigslist`. For more information, see `$help notify`."
+        )
+
     @command(r"notify (?P<source_name>.+?)( (?P<params>(\w+=[\w-]+ ?)+)$|$)")
     async def create_notifier(self, message: Message, command: re.Match) -> None:
         source_name: str = command.group("source_name").lower()
