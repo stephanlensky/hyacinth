@@ -47,14 +47,6 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
                     validator=CraigslistNotifierSetupInteraction.validate_category,
                 ),
                 Question(
-                    key="price_range",
-                    prompt=(
-                        "What price range would you like to search for? Enter your answer as two"
-                        " dollar values separated by a hyphen. For example, `20-100`."
-                    ),
-                    validator=CraigslistNotifierSetupInteraction.validate_price_range,
-                ),
-                Question(
                     key="max_distance_miles",
                     prompt=(
                         "What is the maximum distance away (in miles) that you would like to show"
@@ -96,7 +88,6 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
         area = get_areas()[search_params.pop("area")]
         search_params["site"] = area.site
         search_params["nearby_areas"] = area.nearby_areas
-        search_params["min_price"], search_params["max_price"] = search_params.pop("price_range")
         search_params["home_lat_long"] = settings.home_lat_long
 
         search_spec = SearchSpec(
@@ -140,12 +131,3 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
         if not re.match(r"^[a-zA-Z0-9]+$", v):
             raise ValueError("Category must be alphanumeric")
         return v
-
-    @staticmethod
-    def validate_price_range(v: str) -> tuple[int, int]:
-        match = re.match(r"^(?P<min_price>[0-9]+)-(?P<max_price>[0-9]+)$", v)
-        if not match:
-            raise ValueError("Price range must be two hyphen-separated numbers")
-
-        min_price, max_price = match.group("min_price", "max_price")
-        return (int(min_price), int(max_price))

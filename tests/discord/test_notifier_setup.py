@@ -13,8 +13,6 @@ MODULE = "notifier_bot.discord.notifier_setup"
 
 SOME_AREA_INDEX = 0
 SOME_CATEGORY = "mca"
-SOME_MIN_PRICE = 2
-SOME_MAX_PRICE = 5000
 SOME_MAX_DISTANCE = 500
 
 
@@ -33,7 +31,6 @@ def test_craigslist_notifier_setup_interaction__creates_proper_search_spec(
     setup_interaction.answers = {
         "area": str(SOME_AREA_INDEX + 1),
         "category": SOME_CATEGORY,
-        "price_range": f"{SOME_MIN_PRICE}-{SOME_MAX_PRICE}",
         "max_distance_miles": str(SOME_MAX_DISTANCE),
     }
     setup_interaction.configure_notifier()
@@ -46,8 +43,6 @@ def test_craigslist_notifier_setup_interaction__creates_proper_search_spec(
             nearby_areas=area.nearby_areas,
             category=SOME_CATEGORY,
             home_lat_long=settings.home_lat_long,
-            min_price=SOME_MIN_PRICE,
-            max_price=SOME_MAX_PRICE,
             max_distance_miles=SOME_MAX_DISTANCE,
         ),
     )

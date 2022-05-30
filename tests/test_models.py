@@ -16,8 +16,6 @@ def test_search_spec__is_hashable() -> None:
             nearby_areas=areas["New England/New York"].nearby_areas,
             category="sss",
             home_lat_long=settings.home_lat_long,
-            min_price=0,
-            max_price=1000,
             max_distance_miles=100,
         ).dict(),
     )

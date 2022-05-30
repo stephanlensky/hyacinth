@@ -27,8 +27,6 @@ class CraigslistSearchParams(SearchParams):
     nearby_areas: tuple[str, ...]
     category: str
     home_lat_long: tuple[float, float]
-    min_price: int | None = None
-    max_price: int | None = None
     max_distance_miles: float | None = None
 
     @validator("nearby_areas", pre=True)
@@ -51,10 +49,6 @@ class CraigslistSource(ListingSource):
             "search_nearby": 2,
             "nearby_area": self.search_params.nearby_areas,
         }
-        if self.search_params.min_price is not None:
-            filters["min_price"] = self.search_params.min_price
-        if self.search_params.max_price is not None:
-            filters["max_price"] = self.search_params.max_price
 
         return CraigslistForSale(
             site=self.search_params.site,
