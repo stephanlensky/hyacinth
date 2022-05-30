@@ -16,7 +16,8 @@ _logger = logging.getLogger(__name__)
 
 
 def save_notifier(notifier: ListingNotifier) -> None:
-    from notifier_bot.notifier import DiscordNotifier  # avoid circular import
+    # avoid circular import
+    from notifier_bot.notifier import DiscordNotifier  # pylint: disable=import-outside-toplevel
 
     if isinstance(notifier, DiscordNotifier):
         with Session() as session:

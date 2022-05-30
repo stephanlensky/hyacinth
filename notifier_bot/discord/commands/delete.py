@@ -19,7 +19,7 @@ async def delete_notifier(
 ) -> None:
     _logger.info(f"Received request to delete notifiers from channel {message.channel.id}")
 
-    async def confirm_delete_notifier_handler(reaction: Reaction, user: Member | User):
+    async def confirm_delete_notifier_handler(reaction: Reaction, user: Member | User) -> None:
         if user != message.author or reaction.emoji not in [
             "\u2705",  # :white_check_mark:
             "\u2714",  # :heavy_check_mark:

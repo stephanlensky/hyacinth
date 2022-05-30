@@ -57,6 +57,12 @@ services:
     <<: *devbox
     command: ["docker/scripts/test-docker-entrypoint.sh"]
 
+  migrations:
+    <<: *service
+    depends_on:
+      - db
+    command: ["docker/scripts/migrations-docker-entrypoint.sh"]
+
   pgweb:
     image: sosedoff/pgweb
     env_file:

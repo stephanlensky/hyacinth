@@ -1,4 +1,4 @@
-from notifier_bot.models import Rule
+from notifier_bot.filters import Rule
 from notifier_bot.util.boolean_rule_algebra import apply_rules
 
 

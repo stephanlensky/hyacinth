@@ -1,17 +1,10 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import Any, Generic, TypeVar
+from typing import Any
 
-from boolean import Expression
-from pydantic import BaseModel, Field, PrivateAttr, root_validator
-from pydantic.generics import GenericModel
-
-from notifier_bot.util.boolean_rule_algebra import apply_rules, parse_rule
-
-T = TypeVar("T")
+from pydantic import BaseModel, Field, root_validator
 
 
 class HashableBaseModel(BaseModel):
@@ -79,40 +72,3 @@ class SearchSpec(HashableBaseModel):
             raise NotImplementedError(f"{source} not implemented")
 
         return values
-
-
-class Rule(BaseModel):
-    rule_str: str
-    _expression: Expression = PrivateAttr()
-
-    @property
-    def expression(self) -> Expression:
-        return self._expression
-
-    def __init__(self, **data: Any) -> None:
-        super().__init__(**data)
-        self._expression = parse_rule(self.rule_str)
-
-
-class ListingFieldFilter(ABC, GenericModel, Generic[T]):
-    @abstractmethod
-    def test(self, listing_field: T) -> bool:
-        pass
-
-
-class StringFieldFilter(ListingFieldFilter[str]):
-    rules: list[Rule] = []
-    preremoval_rules: list[str] = []  # remove these words before applying rules
-    disallowed_words: list[str] = []  # auto fail any listing with these words
-
-    def test(self, listing_field: str) -> bool:
-        listing_field = listing_field.lower()
-
-        for preremoval_rule in self.preremoval_rules:
-            listing_field = listing_field.replace(preremoval_rule, "")
-
-        for disallowed_word in self.disallowed_words:
-            if disallowed_word in listing_field:
-                return False
-
-        return apply_rules(self.rules, listing_field)

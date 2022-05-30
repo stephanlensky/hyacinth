@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import ast
 import logging
 import re
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 from discord import Message
 
-from notifier_bot.models import Listing, Rule, StringFieldFilter
+from notifier_bot.filters import NumericFieldFilter, Rule, StringFieldFilter, make_filter
+from notifier_bot.models import Listing
 from notifier_bot.notifier import ListingNotifier
 from notifier_bot.util.boolean_rule_algebra import parse_rule
 
@@ -35,19 +37,10 @@ async def filter_(
 
     if isinstance(field_filter, StringFieldFilter):
         await _handle_string_filter_command(bot, message, field_filter, filter_command)
+    elif isinstance(field_filter, NumericFieldFilter):
+        await _handle_numeric_filter_command(bot, message, field, field_filter, filter_command)
     else:
         raise NotImplementedError("filter type not implemented")
-
-
-def make_filter(listing_cls: Type[Listing], field: str) -> StringFieldFilter:
-    if field not in listing_cls.__fields__:
-        raise ValueError(f"Given field does not exist on {listing_cls}")
-
-    field_type = listing_cls.__fields__[field].type_
-    if field_type is str:
-        return StringFieldFilter()
-
-    raise NotImplementedError(f"Filters not implemented for field of type {field_type}")
 
 
 def is_valid_string_filter_command(filter_command: str) -> bool:
@@ -84,3 +77,35 @@ async def _handle_string_filter_command(
             f"{bot.affirm()} {message.author.mention}, I've added the following"
             f" preremoval rule:\n```{preremove}```"
         )
+
+
+async def _handle_numeric_filter_command(
+    bot: DiscordNotifierBot,
+    message: Message,
+    field: str,
+    field_filter: NumericFieldFilter,
+    filter_command: str,
+) -> None:
+    command = re.match(r"(?P<operator><|<=|>|>=)\s*(?P<operand>\d+(\.\d+)?)", filter_command)
+    if command is None:
+        await message.channel.send(f"Sorry {message.author.mention}, I didn't understand that.")
+        return
+
+    operator_str: str = command.group("operator")
+    operand_str: str = command.group("operand")
+
+    operand = ast.literal_eval(operand_str)
+    if not isinstance(operand, (float, int)):
+        await message.channel.send(f"Sorry {message.author.mention}, I didn't understand that.")
+
+    if ">" in operator_str:
+        field_filter.min = operand
+        field_filter.min_inclusive = "=" in operator_str
+    elif "<" in operator_str:
+        field_filter.max = operand
+        field_filter.max_inclusive = "=" in operator_str
+
+    await message.channel.send(
+        f"{bot.affirm()} {message.author.mention}, I'll only notify you of listings where"
+        f" `{field} {operator_str} {operand}`."
+    )

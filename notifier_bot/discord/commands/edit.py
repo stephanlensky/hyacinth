@@ -7,7 +7,7 @@ from discord import Message
 
 from notifier_bot.db.notifier import save_notifier
 from notifier_bot.discord.thread_interaction import FMT_USER, Question, ThreadInteraction
-from notifier_bot.models import Rule, StringFieldFilter
+from notifier_bot.filters import NumericFieldFilter, Rule, StringFieldFilter
 from notifier_bot.notifier import ListingNotifier
 
 if TYPE_CHECKING:
@@ -144,6 +144,64 @@ class EditStringFilterInteraction(ThreadInteraction):
         return v
 
 
+class EditNumericFilterInteraction(ThreadInteraction):
+    def __init__(
+        self,
+        bot: "DiscordNotifierBot",
+        initiating_message: Message,
+        notifier: ListingNotifier,
+        field: str,
+        filter_: NumericFieldFilter,
+    ) -> None:
+        self.notifier = notifier
+        self.field = field
+        self.filter_ = filter_
+        min_part = ""
+        if filter_.min is not None:
+            min_part = f">{'=' if filter_.min_inclusive else ''} {filter_.min}"
+        max_part = ""
+        if filter_.max is not None:
+            max_part = f"<{'=' if filter_.max_inclusive else ''} {filter_.max}"
+        filter_repr = ", ".join(p for p in (min_part, max_part) if p)
+        if not filter_repr:
+            filter_repr = "unset"
+
+        super().__init__(
+            bot,
+            initiating_message,
+            thread_title="Edit a filter",
+            first_message=None,
+            questions=[
+                Question(
+                    key="delete",
+                    prompt=(
+                        f"Hi {FMT_USER}! I am currently filtering listing price using the"
+                        f" rule:```{filter_repr}```\nWould you like to remove this filter? React or"
+                        " respond with \u274C (`:x:`) to confirm."
+                    ),
+                    validator=self.validate_change,
+                    accepted_reaction_responses=("\u274C",),  # :x:
+                ),
+            ],
+        )
+
+    async def finish(self) -> dict[str, Any]:
+        # note: the only way to finish this interaction is by requesting deletion, so just do that
+        if self.field in self.notifier.config.filters:
+            del self.notifier.config.filters[self.field]
+
+        save_notifier(self.bot.notifiers[self.initiating_message.channel.id])
+        await self.send(f"{self.bot.affirm()} {FMT_USER}, I've deleted the `{self.field}` filter.")
+
+        return await super().finish()
+
+    def validate_change(self, v: str) -> str:
+        if v != "\u274C":
+            raise ValueError("bad response")
+
+        return v
+
+
 async def edit(
     bot: DiscordNotifierBot, message: Message, notifier: ListingNotifier, field: str
 ) -> None:
@@ -156,9 +214,13 @@ async def edit(
         return
     field_filter = notifier.config.filters[field]
 
+    edit_interaction: ThreadInteraction
     if isinstance(field_filter, StringFieldFilter):
         edit_interaction = EditStringFilterInteraction(bot, message, field_filter)
-        await edit_interaction.begin()
-        bot.active_threads[edit_interaction.thread_id] = edit_interaction
+    elif isinstance(field_filter, NumericFieldFilter):
+        edit_interaction = EditNumericFilterInteraction(bot, message, notifier, field, field_filter)
     else:
         raise NotImplementedError("filter type not implemented")
+
+    await edit_interaction.begin()
+    bot.active_threads[edit_interaction.thread_id] = edit_interaction

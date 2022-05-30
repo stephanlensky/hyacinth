@@ -18,7 +18,7 @@ from boolean import (
 )
 
 if TYPE_CHECKING:
-    from notifier_bot.models import Rule
+    from notifier_bot.filters import Rule
 
 
 class BooleanRuleAlgebra(BooleanAlgebra):

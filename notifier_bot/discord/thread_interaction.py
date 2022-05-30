@@ -17,9 +17,9 @@ _logger = logging.getLogger(__name__)
 class Question:
     key: str
     prompt: str
-    validator: Callable[[str], Any] | None
+    validator: Callable[[str], Any] | None = None
     error_response: str | None = None
-    accepted_reaction_responses: tuple[str] = ()
+    accepted_reaction_responses: tuple[str, ...] = ()
 
 
 class ThreadInteraction:
@@ -101,7 +101,7 @@ class ThreadInteraction:
         question = self.unaswered_questions[0]
         if reaction.emoji not in question.accepted_reaction_responses:
             return
-        await self._accept_answer(reaction.emoji)
+        await self._accept_answer(str(reaction.emoji))
 
     async def _accept_answer(self, answer: str) -> None:
         question = self.unaswered_questions[0]
