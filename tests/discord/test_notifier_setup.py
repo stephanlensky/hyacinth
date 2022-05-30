@@ -2,12 +2,9 @@ from pytest_mock import MockerFixture
 
 from notifier_bot.discord.notifier_setup import CraigslistNotifierSetupInteraction
 from notifier_bot.models import SearchSpec, SearchSpecSource
-from notifier_bot.settings import get_settings
 from notifier_bot.sources.craigslist import CraigslistSearchParams
 from notifier_bot.util.craigslist import get_areas
 from tests.conftest import make_message
-
-settings = get_settings()
 
 MODULE = "notifier_bot.discord.notifier_setup"
 
@@ -31,7 +28,6 @@ def test_craigslist_notifier_setup_interaction__creates_proper_search_spec(
     setup_interaction.answers = {
         "area": str(SOME_AREA_INDEX + 1),
         "category": SOME_CATEGORY,
-        "max_distance_miles": str(SOME_MAX_DISTANCE),
     }
     setup_interaction.configure_notifier()
 
@@ -42,8 +38,6 @@ def test_craigslist_notifier_setup_interaction__creates_proper_search_spec(
             site=area.site,
             nearby_areas=area.nearby_areas,
             category=SOME_CATEGORY,
-            home_lat_long=settings.home_lat_long,
-            max_distance_miles=SOME_MAX_DISTANCE,
         ),
     )
 

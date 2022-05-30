@@ -16,6 +16,7 @@ from notifier_bot.models import Listing, SearchSpec
 from notifier_bot.monitor import MarketplaceMonitor
 from notifier_bot.scheduler import get_scheduler
 from notifier_bot.settings import get_settings
+from notifier_bot.util.geo import distance_miles
 
 if TYPE_CHECKING:
     from discord.abc import MessageableChannel
@@ -87,6 +88,14 @@ class ListingNotifier(ABC):
 
         return True
 
+    def _add_calculated_fields_to_listing(self, listing: Listing) -> Listing:
+        # some search sources (e.g. fb marketplace) may explicitly provide distances
+        # only calculate distance if it is not set by the original listing source
+        if listing.distance_miles is None:
+            geotag = (listing.location.latitude, listing.location.longitude)
+            listing.distance_miles = distance_miles(settings.home_lat_long, geotag)
+        return listing
+
     async def _get_new_listings_for_search(self, search: ActiveSearch) -> list[Listing]:
         """
         Get new listings for a given search.
@@ -95,6 +104,8 @@ class ListingNotifier(ABC):
         that have not been seen before.
         """
         new_listings = await self.monitor.get_listings(search.spec, after_time=search.last_notified)
+        # add notifier-dependent calculated fields
+        new_listings = list(map(self._add_calculated_fields_to_listing, new_listings))
         if new_listings:
             search.last_notified = new_listings[0].created_at
             _logger.debug(f"Most recent listing was found at {search.last_notified}")
@@ -185,9 +196,11 @@ class DiscordNotifier(ListingNotifier):
                 location_part = f" - {state}"
             case (city, state):
                 location_part = f" - {city}, {state}"
+        distance_part = ""
+        if listing.distance_miles is not None:
+            distance_part = f" ({int(listing.distance_miles)} mi."
         description = (
-            f"**${int(listing.price)}{location_part} ({int(listing.distance_miles)} mi."
-            f" away)**\n\n{listing.body}"
+            f"**${int(listing.price)}{location_part}{distance_part} away)**\n\n{listing.body}"
         )
 
         embed = discord.Embed(

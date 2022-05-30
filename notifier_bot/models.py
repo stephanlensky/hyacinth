@@ -41,7 +41,7 @@ class Listing(BaseModel):
     thumbnail_url: str | None = None
     price: float
     location: Location
-    distance_miles: float
+    distance_miles: float | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -9,7 +9,6 @@ from notifier_bot.db.notifier import save_notifier as save_notifier_to_db
 from notifier_bot.discord.thread_interaction import FMT_USER, Question, ThreadInteraction
 from notifier_bot.models import SearchSpec, SearchSpecSource
 from notifier_bot.notifier import DiscordNotifier
-from notifier_bot.settings import get_settings
 from notifier_bot.sources.craigslist import CraigslistSearchParams
 from notifier_bot.util.craigslist import get_areas
 
@@ -17,7 +16,6 @@ if TYPE_CHECKING:
     # avoid circular import
     from notifier_bot.discord.discord_bot import DiscordNotifierBot
 
-settings = get_settings()
 _logger = logging.getLogger(__name__)
 
 
@@ -88,7 +86,6 @@ class CraigslistNotifierSetupInteraction(ThreadInteraction):
         area = get_areas()[search_params.pop("area")]
         search_params["site"] = area.site
         search_params["nearby_areas"] = area.nearby_areas
-        search_params["home_lat_long"] = settings.home_lat_long
 
         search_spec = SearchSpec(
             source=SearchSpecSource.CRAIGSLIST,

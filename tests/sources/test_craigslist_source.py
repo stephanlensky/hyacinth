@@ -11,7 +11,6 @@ async def test_craigslist_source_get_listings__returns_a_listing() -> None:
             site=area.site,
             nearby_areas=area.nearby_areas,
             category="sss",  # general for sale
-            home_lat_long=(42.36052144409481, -71.05801368957714),
         )
     )
     listings = await craigslist_source.get_listings(datetime.now() - timedelta(days=1000), limit=1)

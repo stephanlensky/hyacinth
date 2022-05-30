@@ -13,7 +13,7 @@ from notifier_bot.models import Listing, SearchParams
 from notifier_bot.settings import get_settings
 from notifier_bot.sources.abc import ListingSource
 from notifier_bot.util.craigslist import get_geotag_from_url
-from notifier_bot.util.geo import distance_miles, reverse_geotag
+from notifier_bot.util.geo import reverse_geotag
 from notifier_bot.util.s3 import mirror_image
 
 settings = get_settings()
@@ -26,8 +26,6 @@ class CraigslistSearchParams(SearchParams):
     site: str
     nearby_areas: tuple[str, ...]
     category: str
-    home_lat_long: tuple[float, float]
-    max_distance_miles: float | None = None
 
     @validator("nearby_areas", pre=True)
     @classmethod
@@ -65,12 +63,6 @@ class CraigslistSource(ListingSource):
             listing = self._make_listing(search_result)
             if listing.updated_at > after_time > listing.created_at:
                 _logger.debug(f"Skipping updated listing {listing.title}")
-                continue
-            if (
-                self.search_params.max_distance_miles is not None
-                and listing.distance_miles > self.search_params.max_distance_miles
-            ):
-                _logger.debug(f"Skipping further than max distance listing {listing.title}")
                 continue
             if listing.created_at <= after_time:
                 break
@@ -110,7 +102,6 @@ class CraigslistSource(ListingSource):
             thumbnail_url=thumbnail_url,
             price=price,
             location=reverse_geotag(geotag),
-            distance_miles=distance_miles(self.search_params.home_lat_long, geotag),
             created_at=datetime.strptime(listing_json["created"], CRAIGSLIST_DATE_FORMAT),
             updated_at=datetime.strptime(listing_json["last_updated"], CRAIGSLIST_DATE_FORMAT),
         )
