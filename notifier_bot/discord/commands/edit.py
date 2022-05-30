@@ -175,7 +175,7 @@ class EditNumericFilterInteraction(ThreadInteraction):
                 Question(
                     key="delete",
                     prompt=(
-                        f"Hi {FMT_USER}! I am currently filtering listing price using the"
+                        f"Hi {FMT_USER}! I am currently filtering {field} using the"
                         f" rule:```{filter_repr}```\nWould you like to remove this filter? React or"
                         " respond with \u274C (`:x:`) to confirm."
                     ),
