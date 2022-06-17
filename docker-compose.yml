@@ -33,7 +33,7 @@ services:
     restart: "unless-stopped"
 
   redis:
-    image: "redis:7.0.0"
+    image: "redis:7.0.2"
     env_file:
       - ".env"
     restart: "unless-stopped"
