@@ -1,4 +1,4 @@
-# Hyacinth
+# Hyacinth  🦜
 
 [![Documentation](https://img.shields.io/github/workflow/status/stephanlensky/hyacinth/docs?label=docs)](https://slensky.com/hyacinth)
 [![Checked with mypy](https://img.shields.io/badge/mypy-checked-blue.svg)](http://mypy-lang.org/)
@@ -7,7 +7,7 @@
 
 **Documentation:** https://slensky.com/hyacinth
 
-## Overview 🦜
+## Overview
 
 **Hyacinth** is a Discord bot which will automatically send you notifications for new listings or postings anywhere on the web.
 
