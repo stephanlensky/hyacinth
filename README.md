@@ -5,27 +5,21 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
-## Usage
+**Documentation:** https://slensky.com/hyacinth
 
-### Local reverse geocoding
+## Overview 🦜
 
-In order to present the most accurate location information, some sources will attempt to detect the city and state of listings based off of their coordinate location (latitude and longitude). This is a process known as **reverse geocoding**.
+**Hyacinth** is a Discord bot which will automatically send you notifications for new listings or postings anywhere on the web.
 
-By default, the [Google Geocoding API](https://developers.google.com/maps/documentation/geocoding/overview) is used for this. However, this is a paid service and usage requires a Google Cloud Platform account with billing set up. For users who do not wish to configure this, a local reverse geocoder is included with much of the same functionality.
+Currently, only Craigslist is supported, but the application is built to be easily extensible. Taking inspiration from the venerable [youtube-dl](https://youtube-dl.org/), Hyacinth provides a single interface for filtering listings and sending notifications while allowing new sources to be developed in a pluggable fashion.
 
-To use it, first download the following freely available geospatial datasets and extract them into the `geography/` folder:
+Hyacinth offers a number of advanced features for power-users, including:
 
-- [cities1000.zip](http://download.geonames.org/export/dump/cities1000.zip) from geonames.org
-- [gadm36_USA_gpkg.zip](https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/gadm36_USA_gpkg.zip) from GADM
+- Complex filtering rules, including text-based filtering using arbitrary boolean rules
+- Customizable polling intervals, allowing full control over how often the bot checks for new listings
+- Search batching, reducing the number of times listing sources are polled for each search and allowing for more searches before hitting the anti-bot measures many classified ad sites have in place
 
-After this, enable local reverse geocoding with the `USE_LOCAL_GEOCODER` environment variable.
-
-(in `.env` file)
-```
-USE_LOCAL_GEOCODER=true
-```
-
-Note that currently only reverse geocoding US locations is supported by the local geocoder.
+For more information and the user guide, please head over to the [documentation](https://slensky.com/hyacinth/).
 
 ## Local development
 
