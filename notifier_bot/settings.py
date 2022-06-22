@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # the local geocoding implementation does not require a google API key, but requires first
     # downloading some spatial data and only supports the US
-    use_local_geocoder: bool = False
+    use_local_geocoder: bool = True
 
     # google geocoding credentials
     google_geocoding_api_key: str

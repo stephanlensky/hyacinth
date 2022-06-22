@@ -28,7 +28,7 @@ from notifier_bot.settings import get_settings
 settings = get_settings()
 _logger = logging.getLogger(__name__)
 
-_discord_notifier_bot_commands: dict[Pattern, Callable] = {}
+_discord_bot_commands: dict[Pattern, Callable] = {}
 
 AFFIRMATIONS = ["Okay", "Sure", "Sounds good", "No problem", "Roger that", "Got it"]
 THANKS = [*AFFIRMATIONS, "Thanks", "Thank you"]
@@ -99,11 +99,11 @@ class DiscordNotifierBot:
             return
 
         _logger.info(f"Received command: {command}")
-        for pattern in _discord_notifier_bot_commands:
+        for pattern in _discord_bot_commands:
             match = pattern.match(command)
             if match:
                 try:
-                    await _discord_notifier_bot_commands[pattern](self, message, match)
+                    await _discord_bot_commands[pattern](self, message, match)
                 except asyncio.CancelledError:
                     raise
                 except Exception:
@@ -141,7 +141,7 @@ class DiscordNotifierBot:
         """
 
         def deco(f: Callable[..., Any]) -> Callable[..., Any]:
-            _discord_notifier_bot_commands[re.compile(r, re.IGNORECASE)] = f
+            _discord_bot_commands[re.compile(r, re.IGNORECASE)] = f
             return f
 
         return deco

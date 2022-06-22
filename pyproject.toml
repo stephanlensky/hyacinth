@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "marketplace-notifier-bot"
+name = "hyacinth"
 version = "0.0.1"
 description = "A Discord bot to send notifications for marketplace (Craigslist, Facebook) postings based on complex matching rules."
 authors = ["Stephan Lensky <public@slensky.com>"]
 readme = "README.md"
 license = "AGPL-3.0-only"
-homepage = "https://github.com/stephanlensky/marketplace-notifier-bot"
-repository = "https://github.com/stephanlensky/marketplace-notifier-bot"
+homepage = "https://github.com/stephanlensky/hyacinth"
+repository = "https://github.com/stephanlensky/hyacinth"
 include = [
     "LICENSE",
 ]
@@ -51,6 +51,7 @@ types-requests = "^2.27.15"
 SQLAlchemy = {extras = ["mypy"], version = "^1.4.35"}
 celery-types = "^0.13.0"
 boto3-stubs = {extras = ["s3"], version = "^1.23.8"}
+mkdocs-material = "^8.3.6"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
