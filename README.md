@@ -11,13 +11,13 @@
 
 **Hyacinth** is a Discord bot which will automatically send you notifications for new listings or postings anywhere on the web.
 
-Currently, only Craigslist is supported, but the application is built to be easily extensible. Taking inspiration from the venerable [youtube-dl](https://youtube-dl.org/), Hyacinth provides a single interface for filtering listings and sending notifications while allowing new sources to be developed in a pluggable fashion.
+Taking inspiration from the venerable [youtube-dl](https://youtube-dl.org/), Hyacinth provides a unified interface for filtering listings and sending notifications while allowing new sources to be added separately with minimal additional effort.
 
 Hyacinth offers a number of advanced features for power-users, including:
 
 - Complex filtering rules, including text-based filtering using arbitrary boolean rules
 - Customizable polling intervals, allowing full control over how often the bot checks for new listings
-- Search batching, reducing the number of times listing sources are polled for each search and allowing for more searches before hitting the anti-bot measures many classified ad sites have in place
+- Search batching, reducing the number of times listing sources are polled for each search and allowing for more searches before hitting anti-bot measures
 
 For more information and the user guide, please head over to the [documentation](https://slensky.com/hyacinth/).
 
@@ -29,4 +29,4 @@ This application is built with [Docker](https://www.docker.com/), and the recomm
 docker-compose up -d devbox
 ```
 
-Then attach to the container using your preferred IDE.
+Then attach to the container using your favorite IDE.
