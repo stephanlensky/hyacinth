@@ -4,8 +4,8 @@ from unittest.mock import Mock
 import pytest
 from discord import Message
 
-from notifier_bot.models import Location
-from notifier_bot.util import geo
+from hyacinth.models import Location
+from hyacinth.util import geo
 
 
 def make_message(content: str = "") -> Mock:

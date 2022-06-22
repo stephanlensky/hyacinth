@@ -1,2 +1,2 @@
 #!/bin/sh
-poetry run notifier-bot
+poetry run hyacinth

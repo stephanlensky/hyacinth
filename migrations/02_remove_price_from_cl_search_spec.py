@@ -7,8 +7,8 @@ This migration changes all craigslist search_specs in the database to remove the
 
 import json
 
-from notifier_bot.db.models import DbDiscordNotifier, DbListing
-from notifier_bot.db.session import Session
+from hyacinth.db.models import DbDiscordNotifier, DbListing
+from hyacinth.db.session import Session
 
 
 def update_notifiers() -> None:

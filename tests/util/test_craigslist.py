@@ -2,8 +2,8 @@ from pathlib import Path
 
 from pytest_mock import MockerFixture
 
-from notifier_bot.models import CraigslistSite
-from notifier_bot.util import craigslist
+from hyacinth.models import CraigslistSite
+from hyacinth.util import craigslist
 from tests.resources import get_resource_path
 
 

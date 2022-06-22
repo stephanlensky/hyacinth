@@ -1,5 +1,5 @@
-from notifier_bot.filters import Rule
-from notifier_bot.util.boolean_rule_algebra import apply_rules
+from hyacinth.filters import Rule
+from hyacinth.util.boolean_rule_algebra import apply_rules
 
 
 def test_apply_rules__complex_rule__returns_expected() -> None:

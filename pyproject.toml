@@ -11,11 +11,11 @@ include = [
     "LICENSE",
 ]
 packages = [
-    {include = "notifier_bot"}
+    {include = "hyacinth"}
 ]
 
 [tool.poetry.scripts]
-notifier-bot = "notifier_bot._entry:run_discord_bot"
+hyacinth = "hyacinth._entry:run_discord_bot"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.11"

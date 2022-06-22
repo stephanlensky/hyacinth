@@ -1,12 +1,12 @@
 from pytest_mock import MockerFixture
 
-from notifier_bot.discord.notifier_setup import CraigslistNotifierSetupInteraction
-from notifier_bot.models import SearchSpec, SearchSpecSource
-from notifier_bot.sources.craigslist import CraigslistSearchParams
-from notifier_bot.util.craigslist import get_areas
+from hyacinth.discord.notifier_setup import CraigslistNotifierSetupInteraction
+from hyacinth.models import SearchSpec, SearchSpecSource
+from hyacinth.sources.craigslist import CraigslistSearchParams
+from hyacinth.util.craigslist import get_areas
 from tests.conftest import make_message
 
-MODULE = "notifier_bot.discord.notifier_setup"
+MODULE = "hyacinth.discord.notifier_setup"
 
 SOME_AREA_INDEX = 0
 SOME_CATEGORY = "mca"

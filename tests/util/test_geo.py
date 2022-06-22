@@ -1,6 +1,6 @@
 from typing import Callable
 
-from notifier_bot.models import Location
+from hyacinth.models import Location
 
 
 def test_reverse_geocode__reversable_geotag(

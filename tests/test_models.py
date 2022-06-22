@@ -1,7 +1,7 @@
-from notifier_bot.models import SearchSpec, SearchSpecSource
-from notifier_bot.settings import get_settings
-from notifier_bot.sources.craigslist import CraigslistSearchParams
-from notifier_bot.util.craigslist import get_areas
+from hyacinth.models import SearchSpec, SearchSpecSource
+from hyacinth.settings import get_settings
+from hyacinth.sources.craigslist import CraigslistSearchParams
+from hyacinth.util.craigslist import get_areas
 
 settings = get_settings()
 

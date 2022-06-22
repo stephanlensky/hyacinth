@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
-from notifier_bot.sources.craigslist import CraigslistSearchParams, CraigslistSource
-from notifier_bot.util.craigslist import get_areas
+from hyacinth.sources.craigslist import CraigslistSearchParams, CraigslistSource
+from hyacinth.util.craigslist import get_areas
 
 
 async def test_craigslist_source_get_listings__returns_a_listing() -> None:
