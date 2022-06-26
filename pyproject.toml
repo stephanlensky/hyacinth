@@ -30,7 +30,6 @@ pydantic = {extras = ["dotenv"], version = "^1.9.0"}
 SQLAlchemy = "^1.4.35"
 wrapt = "^1.14.0"
 psycopg2 = "^2.9.3"
-celery = "^5.2.6"
 redis = "^4.2.2"
 APScheduler = "^3.9.1"
 geopandas = "^0.11.0"
@@ -49,7 +48,6 @@ pylint = "^2.13.3"
 docformatter = "^1.4"
 types-requests = "^2.27.15"
 SQLAlchemy = {extras = ["mypy"], version = "^1.4.35"}
-celery-types = "^0.13.0"
 boto3-stubs = {extras = ["s3"], version = "^1.23.8"}
 mkdocs-material = "^8.3.6"
 
@@ -93,9 +91,6 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 filterwarnings = [
-    # kombu produces this warning in the latest version
-    # fixed in latest git, waiting on version release
-    'ignore:SelectableGroups dict interface is deprecated. Use select.:DeprecationWarning',
     # geopandas has not yet switched off of distutils
     'ignore:distutils Version classes are deprecated:DeprecationWarning'
 ]
