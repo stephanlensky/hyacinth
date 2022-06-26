@@ -41,7 +41,7 @@ In order to connect Hyacinth to Discord, you must first configure an application
 After completing the steps above, start Hyacinth with the following Docker command:
 
 ```
-docker-compose up service worker
+docker-compose up service
 ```
 
 If everything worked correctly, the bot's status in Discord will change to online and it will start accepting commands.
@@ -49,7 +49,7 @@ If everything worked correctly, the bot's status in Discord will change to onlin
 After verifying that everything is working, exit with `Ctrl+c` and restart in detached mode so that the bot will continue to run even after closing the terminal window.
 
 ```
-docker-compose up -d service worker
+docker-compose up -d service
 ```
 
 To stop the bot after this, use:
