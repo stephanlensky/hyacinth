@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     log_format: str = "%(asctime)s [%(process)d] [%(levelname)s] %(name)-16s %(message)s"
     log_date_format: str = "%Y-%m-%d %H:%M:%S"
 
+    # list of plugin paths to load on start-up
+    plugins: list[str] = [
+        "plugins.craigslist.plugin:CraigslistPlugin",
+    ]
+
     # db credentials
     postgres_user: str
     postgres_password: str
@@ -51,6 +56,9 @@ class Settings(BaseSettings):
     s3_access_key: str | None
     s3_secret_key: str | None
     s3_bucket: str | None
+
+    ### Development setings
+    disable_search_polling: bool = False
 
     class Config:
         env_file = ".env"

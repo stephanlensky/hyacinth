@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, Field, root_validator
+import discord
+from pydantic import BaseModel, PrivateAttr, root_validator
+
+from hyacinth.exceptions import MissingPluginError
+
+if TYPE_CHECKING:
+    from hyacinth.plugin import Plugin
 
 
 class HashableBaseModel(BaseModel):
@@ -15,15 +21,21 @@ class HashableBaseModel(BaseModel):
         allow_mutation = False
 
 
-class CraigslistArea(BaseModel):
-    site: str
-    nearby_areas: list[str]
+class DiscordMessage(BaseModel):
+    content: str | None = None
+    embed: discord.Embed | None = None
 
+    @root_validator(pre=True)
+    @classmethod
+    def ensure_content(cls, values: dict[str, Any]) -> dict[str, Any]:
+        content, embed = values.get("content"), values.get("embed")
+        if content is None and embed is None:
+            raise ValueError("at least one of content or embed must be provided")
 
-class CraigslistSite(BaseModel):
-    hostname: str = Field(alias="Hostname")
-    latitude: float = Field(alias="Latitude")
-    longitude: float = Field(alias="Longitude")
+        return values
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class Location(BaseModel):
@@ -46,8 +58,10 @@ class Listing(BaseModel):
     updated_at: datetime
 
 
-class SearchSpecSource(str, Enum):
-    CRAIGSLIST = "craigslist"
+@dataclass
+class ListingMetadata:
+    listing: Listing
+    plugin: Plugin
 
 
 class SearchParams(HashableBaseModel):
@@ -55,20 +69,29 @@ class SearchParams(HashableBaseModel):
 
 
 class SearchSpec(HashableBaseModel):
-    source: SearchSpecSource
+    _plugin: Plugin | None = PrivateAttr(default=None)
+    plugin_path: str
     search_params: SearchParams
+
+    @property
+    def plugin(self) -> Plugin:
+        if self._plugin is None:
+            # pylint: disable=import-outside-toplevel
+            from hyacinth.plugin import get_plugin
+
+            self._plugin = get_plugin(self.plugin_path)
+
+        return self._plugin
 
     @root_validator(pre=True)
     @classmethod
     def parse_search_params(cls, values: dict[str, Any]) -> dict[str, Any]:
-        source = values["source"]
-        search_params = values["search_params"]
-        if source == SearchSpecSource.CRAIGSLIST:
-            # pylint: disable=import-outside-toplevel
-            from hyacinth.sources.craigslist import CraigslistSearchParams
+        # pylint: disable=import-outside-toplevel
+        from hyacinth.plugin import get_plugin
 
-            values["search_params"] = CraigslistSearchParams.parse_obj(search_params)
-        else:
-            raise NotImplementedError(f"{source} not implemented")
+        plugin = get_plugin(values["plugin_path"])
+        if plugin is None:
+            raise MissingPluginError(values["plugin_path"])
 
+        values["search_params"] = plugin.search_param_cls.parse_obj(values["search_params"])
         return values

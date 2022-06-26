@@ -2,7 +2,7 @@
 
 **Hyacinth** is a Discord bot which will automatically send you notifications for new listings or postings anywhere on the web.
 
-Currently, only Craigslist is supported, but the application is built to be easily extensible. Taking inspiration from the venerable [youtube-dl](https://youtube-dl.org/), Hyacinth provides a single interface for filtering listings and sending notifications while allowing new sources to be developed in a pluggable fashion.
+Taking inspiration from the venerable [youtube-dl](https://youtube-dl.org/), Hyacinth provides a core interface for filtering listings and sending notifications while allowing new listing sources to be added using a flexible plugin system.
 
 Hyacinth is offered only in **self-hosted** form. This means you are the "administrator" of the bot, which entails:
 

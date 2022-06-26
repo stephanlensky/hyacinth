@@ -4,14 +4,12 @@ from datetime import datetime, timedelta
 from apscheduler.job import Job
 from apscheduler.triggers.interval import IntervalTrigger
 
-from hyacinth.celery import app
 from hyacinth.db.listing import get_last_listing as get_last_listing_from_db
 from hyacinth.db.listing import get_listings as get_listings_from_db
-from hyacinth.models import Listing, SearchSpec, SearchSpecSource
-from hyacinth.scheduler import get_scheduler
+from hyacinth.db.listing import save_listings as save_listings_to_db
+from hyacinth.models import Listing, SearchSpec
+from hyacinth.scheduler import get_threadpool_scheduler
 from hyacinth.settings import get_settings
-from hyacinth.sources.craigslist import CraigslistSource
-from hyacinth.tasks import get_and_save_listings
 
 settings = get_settings()
 _logger = logging.getLogger(__name__)
@@ -19,12 +17,9 @@ _logger = logging.getLogger(__name__)
 
 class MarketplaceMonitor:
     def __init__(self) -> None:
-        self.scheduler = get_scheduler()
+        self.scheduler = get_threadpool_scheduler()
         self.search_spec_job_mapping: dict[SearchSpec, Job] = {}
         self.search_spec_ref_count: dict[SearchSpec, int] = {}
-
-        # delete all pending tasks from previous runs of the bot
-        app.control.purge()
 
     def register_search(self, search_spec: SearchSpec) -> None:
         # check if there is already a scheduled task to poll this search
@@ -38,7 +33,9 @@ class MarketplaceMonitor:
         self.search_spec_job_mapping[search_spec] = self.scheduler.add_job(
             self.poll_search,
             kwargs={"search_spec": search_spec},
-            trigger=IntervalTrigger(seconds=self._get_polling_interval(search_spec)),
+            trigger=IntervalTrigger(
+                seconds=search_spec.plugin.polling_interval(search_spec.search_params)
+            ),
             next_run_time=datetime.now(),
         )
         self.search_spec_ref_count[search_spec] = 1
@@ -56,14 +53,11 @@ class MarketplaceMonitor:
     async def get_listings(self, search_spec: SearchSpec, after_time: datetime) -> list[Listing]:
         return get_listings_from_db(search_spec, after_time)
 
-    @staticmethod
-    def _get_polling_interval(search_spec: SearchSpec) -> int:
-        if search_spec.source == SearchSpecSource.CRAIGSLIST:
-            return CraigslistSource.recommended_polling_interval(search_spec.search_params)
+    def poll_search(self, search_spec: SearchSpec) -> None:
+        if settings.disable_search_polling:
+            _logger.debug(f"Search polling is disabled, would poll search {search_spec}")
+            return
 
-        raise NotImplementedError(f"{search_spec.source} not implemented")
-
-    async def poll_search(self, search_spec: SearchSpec) -> None:
         _logger.debug(f"Polling search {search_spec}")
         after_time = datetime.now() - timedelta(hours=settings.notifier_backdate_time_hours)
         last_listing = get_last_listing_from_db(search_spec)
@@ -74,9 +68,9 @@ class MarketplaceMonitor:
                 f"Found recent listing at {last_listing.created_at}, resuming at {after_time}."
             )
 
-        # start a celery task in a separate worker to get and save the listings
-        result = get_and_save_listings.delay(search_spec.json(), after_time.isoformat())
-        result.forget()
+        listings = search_spec.plugin.get_listings(search_spec.search_params, after_time)
+        save_listings_to_db(search_spec, listings)
+        _logger.debug(f"Found {len(listings)} since {after_time} for search_spec={search_spec}")
 
     def __del__(self) -> None:
         for search_spec in self.search_spec_job_mapping:

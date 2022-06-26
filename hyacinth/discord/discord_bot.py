@@ -23,6 +23,7 @@ from hyacinth.discord.commands.stats import stats
 from hyacinth.discord.thread_interaction import ThreadInteraction
 from hyacinth.monitor import MarketplaceMonitor
 from hyacinth.notifier import DiscordNotifier, ListingNotifier
+from hyacinth.plugin import register_plugin
 from hyacinth.settings import get_settings
 
 settings = get_settings()
@@ -46,6 +47,11 @@ class DiscordNotifierBot:
 
         self.client = client
         self.command_prefix = command_prefix
+
+        # load plugins
+        for plugin_path in settings.plugins:
+            register_plugin(plugin_path)
+        _logger.info(f"Successfully loaded {len(settings.plugins)} plugins!")
 
         self.monitor = MarketplaceMonitor()
         self.notifiers: dict[int, DiscordNotifier] = {}  # channel ID -> notifier
@@ -200,7 +206,7 @@ class DiscordNotifierBot:
     async def help(self, message: Message, _command: re.Match) -> None:
         await show_help(self, message, None)
 
-    @command(r"notify")
+    @command(r"notify$")
     async def invalid_create_notifier_command(self, message: Message, _command: re.Match) -> None:
         """
         This is a common mistake for first users of the bot.
@@ -212,15 +218,15 @@ class DiscordNotifierBot:
             " example, `$notify craigslist`. For more information, see `$help notify`."
         )
 
-    @command(r"notify (?P<source_name>.+?)( (?P<params>(\w+=[\w-]+ ?)+)$|$)")
+    @command(r"notify (?P<plugin_name>.+?)( (?P<params>(\w+=[\w-]+ ?)+)$|$)")
     async def create_notifier(self, message: Message, command: re.Match) -> None:
-        source_name: str = command.group("source_name").lower()
+        plugin_name: str = command.group("plugin_name").lower()
         params: dict[str, str] | None = None
         if command.group("params"):
             params = dict((p.split("=") for p in command.group("params").split(" ")))
-        _logger.info(f"Received request to create notifier from {source_name=} {params=}")
+        _logger.info(f"Received request to create notifier from {plugin_name=} {params=}")
 
-        await create_notifier(self, message, source_name, params)
+        await create_notifier(self, message, plugin_name, params)
 
     @command(r"delete")
     @pass_notifier(save_changes=False)

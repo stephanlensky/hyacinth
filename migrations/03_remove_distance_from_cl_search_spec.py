@@ -19,7 +19,7 @@ def update_notifiers() -> None:
             notifier_json = json.loads(db_notifier.config_json)  # type: ignore
             updated = False
             for search in notifier_json["active_searches"]:
-                if search["spec"]["source"] != "craigslist":
+                if search["spec"].get("source") != "craigslist":
                     continue
 
                 params: dict = search["spec"]["search_params"]
@@ -43,7 +43,7 @@ def update_listings() -> None:
         db_listings: list[DbListing] = session.query(DbListing).all()
         for db_listing in db_listings:
             search_spec_json = json.loads(db_listing.search_spec_json)  # type: ignore
-            if search_spec_json["source"] != "craigslist":
+            if search_spec_json.get("source") != "craigslist":
                 continue
 
             params: dict = search_spec_json["search_params"]

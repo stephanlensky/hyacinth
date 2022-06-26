@@ -8,8 +8,8 @@ from pathlib import Path
 import requests
 from pydantic import parse_obj_as
 
-from hyacinth.models import CraigslistArea, CraigslistSite
 from hyacinth.settings import get_settings
+from plugins.craigslist.models import CraigslistArea, CraigslistSite
 
 settings = get_settings()
 _logger = logging.getLogger(__name__)

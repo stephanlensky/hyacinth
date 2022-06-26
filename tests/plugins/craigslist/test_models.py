@@ -1,7 +1,7 @@
-from hyacinth.models import SearchSpec, SearchSpecSource
+from hyacinth.models import SearchSpec
 from hyacinth.settings import get_settings
-from hyacinth.sources.craigslist import CraigslistSearchParams
-from hyacinth.util.craigslist import get_areas
+from plugins.craigslist.models import CraigslistSearchParams
+from plugins.craigslist.util import get_areas
 
 settings = get_settings()
 
@@ -10,7 +10,7 @@ def test_search_spec__is_hashable() -> None:
     areas = get_areas()
 
     _search_spec = SearchSpec(
-        source=SearchSpecSource.CRAIGSLIST,
+        plugin_path="plugins.craigslist.plugin:CraigslistPlugin",
         search_params=CraigslistSearchParams(
             site=areas["New England/New York"].site,
             nearby_areas=areas["New England/New York"].nearby_areas,

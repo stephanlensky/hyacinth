@@ -4,29 +4,30 @@ from typing import TYPE_CHECKING
 
 from discord import Message
 
-from hyacinth.discord.notifier_setup import CraigslistNotifierSetupInteraction
-from hyacinth.models import SearchSpecSource
+from hyacinth.discord.notifier_setup import NotifierSetupInteraction
+from hyacinth.plugin import Plugin, get_plugins
 
 if TYPE_CHECKING:
     from hyacinth.discord.discord_bot import DiscordNotifierBot
 
 
 async def create_notifier(
-    bot: DiscordNotifierBot, message: Message, source_name: str, params: dict[str, str] | None
+    bot: DiscordNotifierBot, message: Message, plugin_name: str, params: dict[str, str] | None
 ) -> None:
-    try:
-        source = SearchSpecSource(source_name)
-    except ValueError:
+    plugin: Plugin | None = None
+    for p in get_plugins():
+        if p.command_reference_name == plugin_name:
+            plugin = p
+            break
+
+    if plugin is None:
         await message.channel.send(
-            f'Sorry {message.author.mention}, "{source_name}" is not a source I support sending'
+            f'Sorry {message.author.mention}, "{plugin_name}" is not a source I support sending'
             " notifications for."
         )
         return
 
-    if source == SearchSpecSource.CRAIGSLIST:
-        setup_interaction = CraigslistNotifierSetupInteraction(bot, message)
-    else:
-        raise NotImplementedError(f"{source_name} not implemented")
+    setup_interaction = NotifierSetupInteraction(bot, message, plugin)
 
     if not params:
         await setup_interaction.begin()

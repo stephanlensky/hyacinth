@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable
@@ -17,7 +19,8 @@ _logger = logging.getLogger(__name__)
 class Question:
     key: str
     prompt: str
-    validator: Callable[[str], Any] | None = None
+    validator: Callable[[str, dict[str, Any]], Any] | None = None
+    include_answer: bool = True
     error_response: str | None = None
     accepted_reaction_responses: tuple[str, ...] = ()
 
@@ -25,7 +28,7 @@ class Question:
 class ThreadInteraction:
     def __init__(
         self,
-        bot: "DiscordNotifierBot",
+        bot: DiscordNotifierBot,
         initiating_message: Message,
         thread_title: str,
         first_message: str | None,
@@ -119,12 +122,13 @@ class ThreadInteraction:
         question = self.unaswered_questions[0]
         if question.validator is not None:
             try:
-                validated = question.validator(answer)  # type: ignore
+                validated = question.validator(answer, self._answers)  # type: ignore
             except Exception as e:
                 _logger.debug(f"Validator threw exception {str(e)}")
                 return False
 
-        self._answers[question.key] = validated
+        if question.include_answer:
+            self._answers[question.key] = validated
         self.unaswered_questions.pop(0)
         return True
 
