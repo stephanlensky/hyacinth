@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, Any
 
 from discord import Message
 
-from hyacinth.db.notifier import save_notifier as save_notifier_to_db
+from hyacinth.db.crud.notifier import save_notifier as save_notifier_to_db
 from hyacinth.discord.thread_interaction import FMT_USER, ThreadInteraction
 from hyacinth.models import SearchSpec
-from hyacinth.notifier import DiscordNotifier
+from hyacinth.notifier import ChannelNotifier
 from hyacinth.plugin import Plugin
 
 if TYPE_CHECKING:
@@ -69,8 +69,8 @@ class NotifierSetupInteraction(ThreadInteraction):
         created_notifier = False
         if channel.id not in self.bot.notifiers:
             _logger.info(f"Creating notifier for channel {channel.id}")
-            self.bot.notifiers[channel.id] = DiscordNotifier(
-                channel, self.bot.monitor, DiscordNotifier.Config(paused=True)
+            self.bot.notifiers[channel.id] = ChannelNotifier(
+                channel, self.bot.monitor, ChannelNotifier.Config(paused=True)
             )
             created_notifier = True
         self.bot.notifiers[channel.id].create_search(search_spec)

@@ -2,11 +2,12 @@ from datetime import timezone
 
 import discord
 
-from hyacinth.models import DiscordMessage, Listing
+from hyacinth.models import DiscordMessage
+from plugins.craigslist.models import CraigslistListing
 
 
-def format_listing(listing: Listing) -> DiscordMessage:
-    match (listing.location.city, listing.location.state):
+def format_listing(listing: CraigslistListing) -> DiscordMessage:
+    match (listing.city, listing.state):
         case (None, None):
             location_part = ""
         case (city, None):
@@ -24,7 +25,7 @@ def format_listing(listing: Listing) -> DiscordMessage:
         title=listing.title,
         url=listing.url,
         description=description[:2048],
-        timestamp=listing.updated_at.astimezone(timezone.utc),
+        timestamp=listing.updated_time.astimezone(timezone.utc),
     )
     if listing.image_urls:
         embed.set_image(url=listing.thumbnail_url)

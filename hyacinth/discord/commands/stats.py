@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING
 
 from discord import Message
 
-from hyacinth.notifier import DiscordNotifier
+from hyacinth.notifier import ChannelNotifier
 
 if TYPE_CHECKING:
     from hyacinth.discord.discord_bot import DiscordNotifierBot
 
 
 async def global_stats(bot: DiscordNotifierBot, message: Message) -> None:
-    def get_notifier_repr(notifier: DiscordNotifier) -> str:
+    def get_notifier_repr(notifier: ChannelNotifier) -> str:
         paused = "(paused) " if notifier.config.paused else ""
         return (
             f"{paused}#{getattr(notifier.channel, 'name', notifier.channel.id)} -"

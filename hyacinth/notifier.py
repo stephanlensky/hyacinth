@@ -3,15 +3,18 @@ from __future__ import annotations
 import asyncio
 import logging
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from apscheduler.triggers.interval import IntervalTrigger
-from pydantic import BaseModel
 
-from hyacinth.db.notifier import save_notifier
+from hyacinth.db.crud.notifier import save_notifier_state
+from hyacinth.db.crud.search_spec import add_search_spec
+from hyacinth.db.models import Listing, SearchSpec
+from hyacinth.db.session import Session
 from hyacinth.filters import Filter
-from hyacinth.models import Listing, ListingMetadata, SearchSpec
+from hyacinth.models import ListingMetadata
 from hyacinth.monitor import MarketplaceMonitor
 from hyacinth.plugin import Plugin
 from hyacinth.scheduler import get_async_scheduler
@@ -24,17 +27,19 @@ settings = get_settings()
 _logger = logging.getLogger(__name__)
 
 
-class ActiveSearch(BaseModel):
-    spec: SearchSpec
+@dataclass
+class ActiveSearch:
+    search_spec: SearchSpec
     last_notified: datetime
 
 
 class ListingNotifier(ABC):
-    class Config(BaseModel):
+    @dataclass
+    class Config:
         notification_frequency_seconds: int = settings.notification_frequency_seconds
         paused: bool = False
-        active_searches: list[ActiveSearch] = []
-        filters: dict[str, Filter] = {}
+        active_searches: list[ActiveSearch] = field(default_factory=list)
+        filters: dict[str, Filter] = field(default_factory=dict)
 
     def __init__(self, monitor: MarketplaceMonitor, config: ListingNotifier.Config) -> None:
         self.monitor = monitor
@@ -50,14 +55,23 @@ class ListingNotifier(ABC):
             self.scheduler.pause_job(self.notify_job.id)
 
         for search in config.active_searches:
-            self.monitor.register_search(search.spec)
+            self.monitor.register_search(search.search_spec)
 
-    def create_search(self, search_spec: SearchSpec, last_notified: datetime | None = None) -> None:
+    def create_search(
+        self,
+        plugin: Plugin,
+        search_params_json: dict[str, Any],
+        last_notified: datetime | None = None,
+    ) -> None:
         if last_notified is None:
             last_notified = datetime.now() - timedelta(hours=settings.notifier_backdate_time_hours)
+
+        with Session(expire_on_commit=False) as session:
+            search_spec = add_search_spec(session, plugin.path, search_params_json)
+
         self.config.active_searches.append(
             ActiveSearch(
-                spec=search_spec,
+                search_spec=search_spec,
                 last_notified=last_notified,
             )
         )
@@ -95,18 +109,18 @@ class ListingNotifier(ABC):
         Updates the last_notified time for this search, so repeated calls will return only listings
         that have not been seen before.
         """
-        new_listings = await self.monitor.get_listings(search.spec, after_time=search.last_notified)
+        new_listings = await self.monitor.get_listings(
+            search.search_spec, after_time=search.last_notified
+        )
         if new_listings:
             search.last_notified = new_listings[0].created_at
             _logger.debug(f"Most recent listing was found at {search.last_notified}")
 
         # save reference to plugin to format message later
-        listing_metadata: list[ListingMetadata] = list(
-            map(
-                lambda l: ListingMetadata(listing=l, plugin=search.spec.plugin),
-                new_listings,
-            )
-        )
+        listing_metadata: list[ListingMetadata] = [
+            ListingMetadata(listing=listing, plugin=search.search_spec.plugin)
+            for listing in new_listings
+        ]
 
         return listing_metadata
 
@@ -118,7 +132,9 @@ class ListingNotifier(ABC):
         for search in self.config.active_searches:
             listings.extend(await self._get_new_listings_for_search(search))
         if listings:
-            save_notifier(self)
+            # persist last_notified times to the database
+            with Session() as session:
+                save_notifier_state(session, self)
 
         _logger.debug(
             f"Found {len(listings)} to notify for across {len(self.config.active_searches)} active"
@@ -162,7 +178,7 @@ class ListingNotifier(ABC):
         _logger.debug("Cleaning up notifier!")
         self.scheduler.remove_job(self.notify_job.id)
         for search in self.config.active_searches:
-            self.monitor.remove_search(search.spec)
+            self.monitor.remove_search(search.search_spec)
 
     @abstractmethod
     async def notify(self, plugin: Plugin, listing: Listing) -> None:
@@ -171,10 +187,10 @@ class ListingNotifier(ABC):
 
 class LoggerNotifier(ListingNotifier):
     async def notify(self, plugin: Plugin, listing: Listing) -> None:
-        _logger.info(f"Notify listing {listing}")
+        _logger.info(f"Notify listing {listing.listing_json}")
 
 
-class DiscordNotifier(ListingNotifier):
+class ChannelNotifier(ListingNotifier):
     def __init__(
         self,
         channel: MessageableChannel,
@@ -185,5 +201,6 @@ class DiscordNotifier(ListingNotifier):
         self.channel = channel
 
     async def notify(self, plugin: Plugin, listing: Listing) -> None:
-        message = plugin.format_listing(listing)
+        parsed_listing = plugin.listing_cls.parse_raw(listing.listing_json)
+        message = plugin.format_listing(parsed_listing)
         await self.channel.send(**message.dict())

@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 
 from discord import Member, Message, Reaction, User
 
-from hyacinth.db.notifier import delete_all_discord_notifiers_from_channel
+from hyacinth.db.crud.notifier import delete_channel_notifiers
+from hyacinth.db.session import Session
 from hyacinth.notifier import ListingNotifier
 
 if TYPE_CHECKING:
@@ -30,9 +31,10 @@ async def delete_notifier(
         _logger.info(f"Confirmed deletion of notifiers from channel {message.channel.id}")
         del bot.notifiers[message.channel.id]
         notifier.cleanup()
-        deleted_count = delete_all_discord_notifiers_from_channel(message.channel.id)
+        with Session() as session:
+            delete_channel_notifiers(session, message.channel.id)
         await message.channel.send(
-            f"{bot.affirm()} {message.author.mention}, I've deleted {deleted_count} notifiers from"
+            f"{bot.affirm()} {message.author.mention}, I've deleted all of the notifiers from"
             " this channel."
         )
         del bot.reaction_handlers[reaction.message.id]

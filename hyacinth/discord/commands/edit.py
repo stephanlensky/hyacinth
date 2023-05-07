@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, Any
 
 from discord import Message
 
-from hyacinth.db.notifier import save_notifier
+from hyacinth.db.crud.notifier import save_notifier_state
+from hyacinth.db.session import Session
 from hyacinth.discord.thread_interaction import FMT_USER, Question, ThreadInteraction
 from hyacinth.filters import NumericFieldFilter, Rule, StringFieldFilter
 from hyacinth.notifier import ListingNotifier
@@ -104,7 +105,8 @@ class EditStringFilterInteraction(ThreadInteraction):
             else:
                 self.filter_.disallowed_words[selection] = requested_change
 
-        save_notifier(self.bot.notifiers[self.initiating_message.channel.id])
+        with Session() as session:
+            save_notifier_state(session, self.bot.notifiers[self.initiating_message.channel.id])
         if should_delete:
             await self.send(
                 f"{self.bot.affirm()} {FMT_USER}, I've deleted the following"
@@ -190,7 +192,8 @@ class EditNumericFilterInteraction(ThreadInteraction):
         if self.field in self.notifier.config.filters:
             del self.notifier.config.filters[self.field]
 
-        save_notifier(self.bot.notifiers[self.initiating_message.channel.id])
+        with Session() as session:
+            save_notifier_state(session, self.bot.notifiers[self.initiating_message.channel.id])
         await self.send(f"{self.bot.affirm()} {FMT_USER}, I've deleted the `{self.field}` filter.")
 
         return await super().finish()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import logging
 import random
 import re
@@ -11,8 +12,8 @@ import discord
 import wrapt
 from discord import Member, Message, Reaction, Thread, User
 
-from hyacinth.db.notifier import get_discord_notifiers as get_discord_notifiers_from_db
-from hyacinth.db.notifier import save_notifier as save_notifier_to_db
+from hyacinth.db.crud.notifier import get_channel_notifiers, save_notifier_state
+from hyacinth.db.session import Session
 from hyacinth.discord.commands.delete import delete_notifier
 from hyacinth.discord.commands.edit import edit
 from hyacinth.discord.commands.filter import filter_, is_valid_string_filter_command
@@ -22,8 +23,7 @@ from hyacinth.discord.commands.show import show
 from hyacinth.discord.commands.stats import stats
 from hyacinth.discord.thread_interaction import ThreadInteraction
 from hyacinth.monitor import MarketplaceMonitor
-from hyacinth.notifier import DiscordNotifier, ListingNotifier
-from hyacinth.plugin import register_plugin
+from hyacinth.notifier import ChannelNotifier, ListingNotifier
 from hyacinth.settings import get_settings
 
 settings = get_settings()
@@ -48,18 +48,14 @@ class DiscordNotifierBot:
         self.client = client
         self.command_prefix = command_prefix
 
-        # load plugins
-        for plugin_path in settings.plugins:
-            register_plugin(plugin_path)
-        _logger.info(f"Successfully loaded {len(settings.plugins)} plugins!")
-
         self.monitor = MarketplaceMonitor()
-        self.notifiers: dict[int, DiscordNotifier] = {}  # channel ID -> notifier
+        self.notifiers: dict[int, ChannelNotifier] = {}  # channel ID -> notifier
         self.active_threads: dict[int, ThreadInteraction] = {}  # thread ID -> setup handler
         self.reaction_handlers: dict[int, ReactionHandler] = {}  # message ID -> reaction handler
 
     def load_saved_notifiers(self) -> None:
-        notifiers = get_discord_notifiers_from_db(self.client, self.monitor)
+        with Session() as session:
+            notifiers = get_channel_notifiers(session, self.client, self.monitor)
         for notifier in notifiers:
             self.notifiers[notifier.channel.id] = notifier
         _logger.info(f"Loaded {len(notifiers)} saved notifiers from the database!")
@@ -177,11 +173,12 @@ class DiscordNotifierBot:
             notifier = instance.notifiers[message.channel.id]
             if save_changes:
                 # save original notifier config so we can detect if it was changed
-                old_notifier_config = notifier.config.copy(deep=True)
+                old_notifier_config = dataclasses.replace(notifier.config)
             result = await wrapped(*args, notifier, **kwargs)
             if save_changes and notifier.config != old_notifier_config:
                 _logger.debug(f"Notifier for {message.channel} was changed, saving!")
-                save_notifier_to_db(notifier)
+                with Session() as session:
+                    save_notifier_state(session, notifier)
 
             return result
 

@@ -15,10 +15,8 @@ services:
       - ./:/app
     links:
       - db
-      - redis
     depends_on:
       - db
-      - redis
 
   db:
     image: postgres
@@ -27,15 +25,6 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: "unless-stopped"
-
-  redis:
-    image: "redis:7.0.2"
-    env_file:
-      - ".env"
-    restart: "unless-stopped"
-    stop_grace_period: "2s"
-    volumes:
-      - redis:/data
 
   devbox: &devbox
     <<: *service
@@ -74,5 +63,4 @@ services:
       - db
 
 volumes:
-  redis:
   pgdata:

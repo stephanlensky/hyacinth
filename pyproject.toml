@@ -1,80 +1,74 @@
 [tool.poetry]
-name = "hyacinth"
-version = "0.0.1"
-description = "A Discord bot to send notifications for marketplace (Craigslist, Facebook) postings based on complex matching rules."
 authors = ["Stephan Lensky <public@slensky.com>"]
-readme = "README.md"
-license = "AGPL-3.0-only"
+description = "A Discord bot to send notifications for marketplace (Craigslist, Facebook) postings based on complex matching rules."
 homepage = "https://github.com/stephanlensky/hyacinth"
+include = ["LICENSE"]
+license = "AGPL-3.0-only"
+name = "hyacinth"
+packages = [{ include = "hyacinth" }]
+readme = "README.md"
 repository = "https://github.com/stephanlensky/hyacinth"
-include = [
-    "LICENSE",
-]
-packages = [
-    {include = "hyacinth"}
-]
+version = "0.0.1"
 
 [tool.poetry.scripts]
 hyacinth = "hyacinth._entry:run_discord_bot"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.11"
-requests = "^2.27.1"
+APScheduler = "^3.10.1"
 "boolean.py" = "^4.0"
-"discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "277d35c" }
-python-craigslist = { git = "https://github.com/stephanlensky/python-craigslist.git" }
-geopy = "^2.2.0"
-python-dateutil = "^2.8.2"
-playwright = "^1.20.1"
-pydantic = {extras = ["dotenv"], version = "^1.9.0"}
-SQLAlchemy = "^1.4.35"
-wrapt = "^1.14.0"
-psycopg2 = "^2.9.3"
-redis = "^4.2.2"
-APScheduler = "^3.9.1"
-geopandas = "^0.11.0"
-Rtree = "^1.0.0"
-scipy = "^1.8.0"
 boto3 = "^1.23.8"
+"discord.py" = "^2.2.3"
+geopandas = "^0.11.0"
+geopy = "^2.2.0"
+psycopg2 = "^2.9.3"
+pydantic = { extras = ["dotenv"], version = "^1.9.0" }
+python = ">=3.11,<3.12"
+python-craigslist = { git = "https://github.com/stephanlensky/python-craigslist.git" }
+requests = "^2.27.1"
+rtree = "^1.0.1"
+scipy = "^1.8.0"
+sqlalchemy = "^2.0.12"
+wrapt = "^1.14.0"
 
-[tool.poetry.dev-dependencies]
-pytest = "^7.1.1"
-pytest-mock = "^3.7.0"
-pytest-asyncio = "^0.18.3"
+[tool.poetry.group.dev.dependencies]
 black = "^22.3.0"
-isort = "^5.10.1"
-mypy = "^0.961"
-pylint = "^2.13.3"
+boto3-stubs = { extras = ["s3"], version = "^1.23.8" }
 docformatter = "^1.4"
-types-requests = "^2.27.15"
-SQLAlchemy = {extras = ["mypy"], version = "^1.4.35"}
-boto3-stubs = {extras = ["s3"], version = "^1.23.8"}
+flake8 = "^6.0.0"
+flake8-bugbear = "^23.3.23"
+flake8-comprehensions = "^3.12.0"
+flake8-pyproject = "^1.2.3"
+isort = "^5.10.1"
 mkdocs-material = "^8.3.6"
+mypy = "^1.2.0"
+pytest = "^7.1.1"
+pytest-asyncio = "^0.18.3"
+pytest-cov = "^4.0.0"
+pytest-mock = "^3.7.0"
+types-requests = "^2.27.15"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.pylint.master]
-disable="""
-C0103,C0114,C0115,C0116,C0200,C0330,C0326,W0703,W0105,R1705,R0901,R0902,R0903,R0904,R0911,R0912,R0913,R0914,
-R0915,R0916,R1702,C0206,R0801,R0201,W1203,W0706,R0401,C0104,C0123"""
-extension-pkg-whitelist="pydantic"
+requires = ["poetry-core>=1.0.0"]
 
 [tool.isort]
-profile = "black"
-multi_line_output = 3
 line_length = 100
+multi_line_output = 3
+profile = "black"
 
 [tool.black]
 line-length = 100
 
 [tool.mypy]
-show_column_numbers = true
 disallow_untyped_defs = true
-plugins = ["sqlalchemy.ext.mypy.plugin"]
+show_column_numbers = true
+
+[tool.flake8]
+ignore = ["B008", "E203", "E501", "E711", "E712", "W503"]
+max-line-length = 100
 
 [[tool.mypy.overrides]]
+ignore_missing_imports = true
 module = [
     "craigslist",
     "geopy.*",
@@ -86,11 +80,16 @@ module = [
     "pandas.*",
     "scipy.*",
 ]
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 filterwarnings = [
     # geopandas has not yet switched off of distutils
-    'ignore:distutils Version classes are deprecated:DeprecationWarning'
+    'ignore:distutils Version classes are deprecated:DeprecationWarning',
+    # discord.py is still using this soon to be removed module
+    "ignore:.*'audioop' is deprecated:DeprecationWarning",
+    # pytz warnings from apscheduler 3.x
+    "ignore:The localize method is no longer necessary, as this time zone supports the fold attribute",
+    # not sure where this is coming from - revisit after upgrading all deps to latest
+    "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
 ]

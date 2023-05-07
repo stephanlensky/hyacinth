@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     s3_secret_key: str | None
     s3_bucket: str | None
 
-    ### Development setings
+    # Development setings
     disable_search_polling: bool = False
 
     class Config:
@@ -66,4 +66,5 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    return Settings()
+    # missing arguments detected by mypy are sourced from .env file
+    return Settings()  # type: ignore

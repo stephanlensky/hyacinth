@@ -1,69 +1,135 @@
 from __future__ import annotations
 
+from datetime import datetime
+from functools import cached_property
 from typing import TYPE_CHECKING
 
-import discord
-from sqlalchemy import Column, Integer, Text
-from sqlalchemy.orm import declarative_base
-
-from hyacinth.models import Listing, SearchSpec
+from sqlalchemy import DateTime, ForeignKey, func
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from hyacinth.monitor import MarketplaceMonitor
-    from hyacinth.notifier import DiscordNotifier
-
-Base = declarative_base()
+    from hyacinth.models import BaseListing, BaseSearchParams
+    from hyacinth.plugin import Plugin
 
 
-class DbListing(Base):
+class Base(DeclarativeBase):
+    pass
+
+
+class Listing(Base):
+    """
+    A Listing is a single result from a search.
+
+    Listings must contain a creation time, indicating the time at which the posting was created.
+    This enables both plugins to efficiently scan of the listing source and the notifier to
+    efficiently check the database for new listings.
+
+    All other informational fields about the listing are plugin-specific and are stored as a JSON
+    blob. Common fields might include a title, URL, price, images, and description, but plugin
+    authors are free to store whatever information they want.
+    """
+
     __tablename__ = "listing"
 
-    id = Column(Integer, primary_key=True)
-    created_at = Column(Integer, index=True, nullable=False)
-    search_spec_json = Column(Text, nullable=False)
-    listing_json = Column(Text, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    def to_listing(self) -> Listing:
-        return Listing.parse_raw(self.listing_json)  # type: ignore
+    search_spec_id: Mapped[int] = mapped_column(ForeignKey("searchspec.id"), index=True)
+    listing_json: Mapped[str] = mapped_column(index=True)  # details of listing are plugin-specific
+    # post date of the listing itself
+    creation_time: Mapped[datetime] = mapped_column(DateTime, index=True)
 
-    @classmethod
-    def from_listing(cls, search_spec: SearchSpec, listing: Listing) -> DbListing:
-        return cls(
-            created_at=int(listing.created_at.timestamp()),
-            search_spec_json=search_spec.json(),
-            listing_json=listing.json(),
-        )
+    # when we saw it
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
 
-
-class DbDiscordNotifier(Base):
-    __tablename__ = "notifier"
-
-    channel_id = Column(Text, primary_key=True)
-    config_json = Column(Text, nullable=False)
-
-    def to_notifier(
-        self, client: discord.Client, monitor: MarketplaceMonitor
-    ) -> DiscordNotifier | None:
-        """
-        Create a DiscordNotifier this database model.
-
-        If the channel referenced by the saved notifier no longer exists, return None.
-        """
-        # avoid circular import
-        from hyacinth.notifier import DiscordNotifier  # pylint: disable=import-outside-toplevel
-
-        channel = client.get_channel(int(self.channel_id))  # type: ignore
-        if channel is None:
-            return None
-        return DiscordNotifier(
-            channel=channel,  # type: ignore
-            monitor=monitor,
-            config=DiscordNotifier.Config.parse_raw(self.config_json),  # type: ignore
-        )
+    search_spec: Mapped[SearchSpec] = relationship("SearchSpec")
 
     @classmethod
-    def from_notifier(cls, notifier: DiscordNotifier) -> DbDiscordNotifier:
+    def from_base_listing(cls, base_listing: BaseListing, search_spec_id: int) -> Listing:
         return cls(
-            channel_id=str(notifier.channel.id),
-            config_json=notifier.config.json(),
+            search_spec_id=search_spec_id,
+            listing_json=base_listing.json(),
+            creation_time=base_listing.creation_time,
         )
+
+
+class SearchSpec(Base):
+    """
+    A SearchSpec is a single search against a single plugin source.
+
+    SearchSpecs contain a plugin path and a plugin-specific JSON blob of search parameters. The
+    plugin path is used to determine which plugin to use to poll the source, and the search
+    parameters are passed to the plugin to determine what to search for.
+
+    If multiple notifiers are watching the same search, they will all share a reference to the same
+    SearchSpec, enabling efficient batching when polling sources.
+    """
+
+    __tablename__ = "searchspec"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    plugin_path: Mapped[str] = mapped_column(index=True)
+    search_params_json: Mapped[str] = mapped_column(index=True)  # search params are plugin-specific
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    @cached_property
+    def plugin(self) -> Plugin:
+        from hyacinth.plugin import get_plugin
+
+        return get_plugin(self.plugin_path)
+
+    @cached_property
+    def search_params(self) -> BaseSearchParams:
+        plugin = self.plugin
+
+        return plugin.search_param_cls.parse_raw(self.search_params_json)
+
+
+class NotifierSearch(Base):
+    """
+    A NotifierSearch is a single search that a notifier is watching.
+
+    It encapsulates both a SearchSpec that the notifier is watching and the last time that the
+    notifier notified the user about a listing from that search.
+    """
+
+    __tablename__ = "notifiersearch"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    notifier_id: Mapped[int] = mapped_column(ForeignKey("channelnotifier.id"), index=True)
+    last_notified: Mapped[datetime] = mapped_column(DateTime)
+    search_spec_id: Mapped[int] = mapped_column(ForeignKey("searchspec.id"), index=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    notifier: Mapped[ChannelNotifierState] = relationship(
+        "ChannelNotifierState", back_populates="active_searches"
+    )
+    search_spec: Mapped[SearchSpec] = relationship("SearchSpec")
+
+
+class ChannelNotifierState(Base):
+    """
+    A ChannelNotifierState is the state of a single channel notifier.
+
+    During normal operation, the values in this state are stored in memory. However, when
+    configuration changes are made, the state is persisted to the database so that it can be
+    restored when the bot restarts.
+    """
+
+    __tablename__ = "channelnotifier"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    channel_id: Mapped[str] = mapped_column(unique=True)
+    notification_frequency_seconds: Mapped[int]
+    paused: Mapped[bool] = mapped_column(default=False)
+    active_searches: Mapped[list[NotifierSearch]] = relationship(
+        "NotifierSearch", back_populates="notifier", cascade="all, delete-orphan"
+    )
+    filters_json: Mapped[str] = mapped_column(default="[]")
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
