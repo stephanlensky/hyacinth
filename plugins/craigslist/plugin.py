@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from typing import Awaitable, Callable
 
-from hyacinth.discord.thread_interaction import Question
+import discord
+from discord.ui import Modal
+
 from hyacinth.models import DiscordMessage
 from hyacinth.plugin import Plugin
 from hyacinth.settings import get_settings
 from plugins.craigslist.format import format_listing
 from plugins.craigslist.listings import get_listings
 from plugins.craigslist.models import CraigslistListing, CraigslistSearchParams
-from plugins.craigslist.setup import questions
+from plugins.craigslist.setup_modal import CraigslistSetupModal
 
 settings = get_settings()
 _logger = logging.getLogger(__name__)
@@ -36,5 +39,9 @@ class CraigslistPlugin(Plugin[CraigslistSearchParams, CraigslistListing]):
     def format_listing(self, listing: CraigslistListing) -> DiscordMessage:
         return format_listing(listing)
 
-    def get_setup_questions(self) -> list[Question]:
-        return questions
+    def get_setup_modal(
+        self,
+        callback: Callable[[discord.Interaction, CraigslistSearchParams], Awaitable[None]],
+        existing_search_params: CraigslistSearchParams | None = None,
+    ) -> Modal:
+        return CraigslistSetupModal(callback, prefill=existing_search_params)

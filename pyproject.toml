@@ -34,27 +34,22 @@ wrapt = "^1.14.0"
 black = "^22.3.0"
 boto3-stubs = { extras = ["s3"], version = "^1.23.8" }
 docformatter = "^1.4"
-flake8 = "^6.0.0"
-flake8-bugbear = "^23.3.23"
-flake8-comprehensions = "^3.12.0"
-flake8-pyproject = "^1.2.3"
-isort = "^5.10.1"
 mkdocs-material = "^8.3.6"
 mypy = "^1.2.0"
 pytest = "^7.1.1"
 pytest-asyncio = "^0.18.3"
 pytest-cov = "^4.0.0"
 pytest-mock = "^3.7.0"
+ruff = "^0.0.265"
 types-requests = "^2.27.15"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.0"]
 
-[tool.isort]
-line_length = 100
-multi_line_output = 3
-profile = "black"
+[tool.ruff]
+ignore = ["E501"]
+line-length = 100
 
 [tool.black]
 line-length = 100
@@ -62,10 +57,6 @@ line-length = 100
 [tool.mypy]
 disallow_untyped_defs = true
 show_column_numbers = true
-
-[tool.flake8]
-ignore = ["B008", "E203", "E501", "E711", "E712", "W503"]
-max-line-length = 100
 
 [[tool.mypy.overrides]]
 ignore_missing_imports = true

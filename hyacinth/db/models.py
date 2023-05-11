@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, ForeignKey, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from hyacinth.enums import RuleType
+
 if TYPE_CHECKING:
     from hyacinth.models import BaseListing, BaseSearchParams
     from hyacinth.plugin import Plugin
@@ -98,6 +100,10 @@ class NotifierSearch(Base):
     __tablename__ = "notifiersearch"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+
+    # user-specified name for this search that can be referenced with /notifier commands
+    name: Mapped[str]
+
     notifier_id: Mapped[int] = mapped_column(ForeignKey("channelnotifier.id"), index=True)
     last_notified: Mapped[datetime] = mapped_column(DateTime)
     search_spec_id: Mapped[int] = mapped_column(ForeignKey("searchspec.id"), index=True)
@@ -109,6 +115,29 @@ class NotifierSearch(Base):
         "ChannelNotifierState", back_populates="active_searches"
     )
     search_spec: Mapped[SearchSpec] = relationship("SearchSpec")
+
+
+class Filter(Base):
+    """
+    A Filter is a single filter that can be applied to a notifier.
+
+    Filters are applied to listings after they are collected by the plugin source, but before they
+    are sent to the user. If a listing matches all of the filters, it will be sent to the user.
+    """
+
+    __tablename__ = "filter"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    notifier_id: Mapped[int] = mapped_column(ForeignKey("channelnotifier.id"), index=True)
+
+    field: Mapped[str]
+    rule_type: Mapped[RuleType]
+    rule_expr: Mapped[str]
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    notifier: Mapped[ChannelNotifierState] = relationship("ChannelNotifierState")
 
 
 class ChannelNotifierState(Base):
@@ -129,7 +158,10 @@ class ChannelNotifierState(Base):
     active_searches: Mapped[list[NotifierSearch]] = relationship(
         "NotifierSearch", back_populates="notifier", cascade="all, delete-orphan"
     )
-    filters_json: Mapped[str] = mapped_column(default="[]")
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    filters: Mapped[list[Filter]] = relationship(
+        "Filter", back_populates="notifier", cascade="all, delete-orphan"
+    )

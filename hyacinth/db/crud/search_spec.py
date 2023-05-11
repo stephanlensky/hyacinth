@@ -19,7 +19,7 @@ def add_search_spec(
         .where(SearchSpec.search_params_json == dumped_json)
     )
     if (existing_spec := session.execute(stmt).scalars().first()) is not None:
-        return existing_spec.id
+        return existing_spec
 
     # otherwise create a new search spec
     spec = SearchSpec(
@@ -27,6 +27,5 @@ def add_search_spec(
         search_params_json=dumped_json,
     )
     session.add(spec)
-    session.commit()
 
     return spec

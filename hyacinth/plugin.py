@@ -3,9 +3,10 @@ from __future__ import annotations
 import importlib
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Generic, Type, TypeVar, get_args
+from typing import Awaitable, Callable, Generic, Type, TypeVar, get_args
 
-from hyacinth.discord.thread_interaction import Question
+import discord
+
 from hyacinth.exceptions import MissingPluginError
 from hyacinth.models import BaseListing, BaseSearchParams, DiscordMessage
 
@@ -71,7 +72,12 @@ class Plugin(ABC, Generic[SearchParamsType, ListingType]):
         pass
 
     @abstractmethod
-    def get_setup_questions(self) -> list[Question]:
+    def get_setup_modal(
+        self,
+        callback: Callable[[discord.Interaction, SearchParamsType], Awaitable[None]],
+        # plugins should prefill modal if this is set
+        existing_search_params: SearchParamsType | None = None,
+    ) -> discord.ui.Modal:
         pass
 
     def __get_params_and_listing_type(self) -> tuple[Type[BaseSearchParams], Type[BaseListing]]:

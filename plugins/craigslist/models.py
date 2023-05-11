@@ -34,7 +34,7 @@ class CraigslistSite(BaseModel):
 
 class CraigslistSearchParams(BaseSearchParams):
     site: str
-    nearby_areas: tuple[str, ...]
+    nearby_areas: list[str]
     category: str
 
     @validator("nearby_areas", pre=True)

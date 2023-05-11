@@ -17,6 +17,7 @@ def test_add_search_spec__spec_does_not_exist__creates_new_search_spec(
 
     with test_db_session() as session:
         add_search_spec(session, SOME_PLUGIN_PATH, SOME_SEARCH_PARAMS_JSON)
+        session.commit()
 
         search_spec = session.execute(select(SearchSpec)).scalars().one()
         assert search_spec.plugin_path == SOME_PLUGIN_PATH
@@ -35,6 +36,7 @@ def test_add_search_spec__identical_spec_exists__does_not_create_new_search_spec
         session.commit()
 
         add_search_spec(session, SOME_PLUGIN_PATH, SOME_SEARCH_PARAMS_JSON)
+        session.commit()
 
         search_spec = session.execute(select(SearchSpec)).scalars().one()
         assert search_spec.id == existing_search_spec.id

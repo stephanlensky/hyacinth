@@ -2,8 +2,6 @@ version: "3.7"
 
 services:
   service: &service
-    env_file:
-      - ".env"
     build:
       dockerfile: ./docker/service.dockerfile
       context: .

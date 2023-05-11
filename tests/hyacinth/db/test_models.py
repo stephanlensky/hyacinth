@@ -4,10 +4,10 @@ from pytest_mock import MockerFixture
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from hyacinth.db.models import Listing, NotifierSearch, SearchSpec
+from hyacinth.db.models import Filter, Listing, NotifierSearch, SearchSpec
 from hyacinth.models import BaseListing, BaseSearchParams
 from plugins.craigslist.plugin import CraigslistPlugin
-from tests.sample_data import make_channel_notifier_state, make_notifier_search
+from tests.sample_data import make_channel_notifier_state, make_filter, make_notifier_search
 
 MODULE = "hyacinth.db.models"
 
@@ -59,3 +59,19 @@ def test_channel_notifier_state_active_searches_relationship__search_is_dissocia
         session.commit()
 
         assert not session.execute(select(NotifierSearch)).scalars().all()
+
+
+def test_channel_notifier_state_filters_relationship__filter_is_dissociated__record_is_deleted(
+    test_db_session: sessionmaker[Session],
+) -> None:
+    some_notifier_state = make_channel_notifier_state(filters=[make_filter()])
+    with test_db_session() as session:
+        session.add(some_notifier_state)
+        session.commit()
+
+        assert session.execute(select(Filter)).scalars().all()
+
+        some_notifier_state.filters = []
+        session.commit()
+
+        assert not session.execute(select(Filter)).scalars().all()

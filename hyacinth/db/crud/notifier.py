@@ -4,12 +4,10 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-from pydantic import parse_raw_as
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from hyacinth.db.models import ChannelNotifierState, NotifierSearch
-from hyacinth.filters import Filter
+from hyacinth.db.models import ChannelNotifierState
 
 if TYPE_CHECKING:
     from hyacinth.monitor import MarketplaceMonitor
@@ -18,30 +16,22 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 
-def save_notifier_state(session: Session, notifier: ListingNotifier) -> None:
+def add_notifier_state(session: Session, notifier: ListingNotifier) -> ChannelNotifierState:
     from hyacinth.notifier import ChannelNotifier
 
-    if isinstance(notifier, ChannelNotifier):
-        stmt = delete(ChannelNotifierState).where(
-            ChannelNotifierState.channel_id == str(notifier.channel.id)
-        )
-        session.execute(stmt)
-        session.add(
-            ChannelNotifierState(
-                channel_id=str(notifier.channel.id),
-                notification_frequency_seconds=notifier.config.notification_frequency_seconds,
-                paused=notifier.config.paused,
-                active_searches=[
-                    NotifierSearch(
-                        last_notified=search.last_notified, search_spec_id=search.search_spec.id
-                    )
-                    for search in notifier.config.active_searches
-                ],
-            )
-        )
-
-    else:
+    if not isinstance(notifier, ChannelNotifier):
         raise NotImplementedError(f"{type(notifier)} not implemented")
+
+    _logger.debug("Creating new notifier state")
+    notifier_state = ChannelNotifierState(
+        channel_id=str(notifier.channel.id),
+        notification_frequency_seconds=notifier.config.notification_frequency_seconds,
+        paused=notifier.config.paused,
+        active_searches=list(notifier.config.active_searches),
+        filters=list(notifier.config.filters),
+    )
+    session.add(notifier_state)
+    return notifier_state
 
 
 def get_channel_notifiers(
@@ -53,7 +43,7 @@ def get_channel_notifiers(
     If a stale notifier is encountered (for a channel that no longer exists), it is automatically
     deleted from the database.
     """
-    from hyacinth.notifier import ActiveSearch, ChannelNotifier
+    from hyacinth.notifier import ChannelNotifier
 
     saved_states: list[ChannelNotifierState] = session.query(ChannelNotifierState).all()
 
@@ -74,16 +64,11 @@ def get_channel_notifiers(
             notifier_channel,  # type: ignore[arg-type]
             monitor,
             ChannelNotifier.Config(
+                id=notifier_state.id,
                 notification_frequency_seconds=notifier_state.notification_frequency_seconds,
                 paused=notifier_state.paused,
-                active_searches=[
-                    ActiveSearch(
-                        search_spec=search.search_spec,
-                        last_notified=search.last_notified,
-                    )
-                    for search in notifier_state.active_searches
-                ],
-                filters=parse_raw_as(dict[str, Filter], notifier_state.filters_json),
+                active_searches=list(notifier_state.active_searches),
+                filters=list(notifier_state.filters),
             ),
         )
         notifiers.append(notifier)

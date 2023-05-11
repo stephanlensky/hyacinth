@@ -1,85 +1,89 @@
-from abc import ABC, abstractmethod
-from typing import Annotated, Any, Generic, Literal, Type, TypeVar
+import ast
+import re
+from dataclasses import dataclass
+from typing import Any, Literal
 
 from boolean import Expression
-from pydantic import BaseModel, Field, PrivateAttr
-from pydantic.generics import GenericModel
 
+from hyacinth.db.models import Filter
+from hyacinth.enums import RuleType
 from hyacinth.util.boolean_rule_algebra import apply_rules, parse_rule
 
-T = TypeVar("T")
-Number = int | float
+
+@dataclass
+class NumericRule:
+    operator: Literal["<", "<=", ">", ">=", "="]
+    operand: int | float
 
 
-class ListingFieldFilter(ABC, GenericModel, Generic[T]):
-    @abstractmethod
-    def test(self, listing_field: T) -> bool:
-        pass
+def test(listing: dict[str, Any], filters: list[Filter]) -> bool:
+    and_result = True
+    or_result = False
+    has_no_or_rules = True
+
+    for filter_ in filters:
+        if filter_.field not in listing:
+            continue
+
+        result = _apply_rule_expr(filter_.rule_expr, listing[filter_.field])
+
+        if filter_.rule_type == RuleType.AND:
+            and_result = and_result and result
+        elif filter_.rule_type == RuleType.OR:
+            or_result = or_result or result
+            has_no_or_rules = False
+        else:
+            raise ValueError(f"Invalid rule type: {filter_.rule_type}")
+
+    return and_result and (or_result or has_no_or_rules)
 
 
-class Rule(BaseModel):
-    rule_str: str
-    _expression: Expression = PrivateAttr()
+def _apply_rule_expr(expr: str, field: Any) -> bool:
+    if isinstance(field, str):
+        return _apply_string_rule_expr(expr, field)
+    elif isinstance(field, int) or isinstance(field, float):
+        return _apply_numeric_rule_expr(expr, field)
 
-    @property
-    def expression(self) -> Expression:
-        return self._expression
-
-    def __init__(self, **data: Any) -> None:
-        super().__init__(**data)
-        self._expression = parse_rule(self.rule_str)
+    raise ValueError(f"Invalid field type: {type(field)}")
 
 
-class StringFieldFilter(ListingFieldFilter[str]):
-    filter_type: Literal["string"] = "string"
-    rules: list[Rule] = []
-    preremoval_rules: list[str] = []  # remove these words before applying rules
-    disallowed_words: list[str] = []  # auto fail any listing with these words
+def _apply_numeric_rule_expr(expr: str, field: float | int) -> bool:
+    rule = parse_numeric_rule_expr(expr)
+    if rule.operator == "<":
+        return field < rule.operand
+    elif rule.operator == "<=":
+        return field <= rule.operand
+    elif rule.operator == ">":
+        return field > rule.operand
+    elif rule.operator == ">=":
+        return field >= rule.operand
+    elif rule.operator == "=":
+        return field == rule.operand
 
-    def test(self, listing_field: str) -> bool:
-        listing_field = listing_field.lower()
-
-        for preremoval_rule in self.preremoval_rules:
-            listing_field = listing_field.replace(preremoval_rule, "")
-
-        for disallowed_word in self.disallowed_words:
-            if disallowed_word in listing_field:
-                return False
-
-        return apply_rules(self.rules, listing_field)
+    raise ValueError(f"Invalid operator: {rule.operator}")
 
 
-class NumericFieldFilter(ListingFieldFilter[Number]):
-    filter_type: Literal["numeric"] = "numeric"
-    min: Number | None = None
-    max: Number | None = None
-    min_inclusive: bool = True
-    max_inclusive: bool = True
-
-    def test(self, listing_field: Number) -> bool:
-        min_test = self.min is None or (
-            listing_field >= self.min if self.min_inclusive else listing_field > self.min
-        )
-        max_test = self.max is None or (
-            listing_field <= self.max if self.max_inclusive else listing_field < self.max
-        )
-        return min_test and max_test
+def _apply_string_rule_expr(expr: str, field: str) -> bool:
+    rule = parse_string_rule_expr(expr)
+    return apply_rules([rule], field)
 
 
-Filter = Annotated[StringFieldFilter | NumericFieldFilter, Field(discriminator="filter_type")]
-filter_type_mapping: dict[Type, Type[Filter]] = {
-    str: StringFieldFilter,
-    int: NumericFieldFilter,
-    float: NumericFieldFilter,
-}
+def parse_string_rule_expr(expr: str) -> Expression:
+    """
+    Parse a string rule expression into a boolean expression.
+    """
+    return parse_rule(expr)
 
 
-def make_filter(cls: Type[BaseModel], field: str) -> Filter:
-    if field not in cls.__fields__:
-        raise ValueError(f"Given field does not exist on {cls}")
+def parse_numeric_rule_expr(expr: str) -> NumericRule:
+    match = re.match(r"(?P<operator><|<=|>|>=|=)\s*(?P<operand>\d+(\.\d+)?)", expr)
+    if match is None:
+        raise ValueError(f"Invalid numeric rule expression: {expr}")
 
-    field_type = cls.__fields__[field].type_
-    if field_type not in filter_type_mapping:
-        raise NotImplementedError(f"Filters not implemented for field of type {field_type}")
+    operator: Literal["<", "<=", ">", ">=", "="] = match.group("operator")  # type: ignore
+    operand: Any = ast.literal_eval(match.group("operand"))
 
-    return filter_type_mapping[field_type]()
+    if not isinstance(operand, (float, int)):
+        raise ValueError(f"Invalid operand type: {type(operand)}")
+
+    return NumericRule(operator=operator, operand=operand)

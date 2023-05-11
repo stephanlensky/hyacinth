@@ -1,4 +1,3 @@
-from hyacinth.filters import Rule
 from hyacinth.util.boolean_rule_algebra import apply_rules
 
 

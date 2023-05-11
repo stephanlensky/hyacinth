@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -9,11 +10,11 @@ from typing import TYPE_CHECKING, Any
 
 from apscheduler.triggers.interval import IntervalTrigger
 
-from hyacinth.db.crud.notifier import save_notifier_state
+from hyacinth import filters
+from hyacinth.db.crud.notifier_search import add_notifier_search
 from hyacinth.db.crud.search_spec import add_search_spec
-from hyacinth.db.models import Listing, SearchSpec
+from hyacinth.db.models import Filter, Listing, NotifierSearch
 from hyacinth.db.session import Session
-from hyacinth.filters import Filter
 from hyacinth.models import ListingMetadata
 from hyacinth.monitor import MarketplaceMonitor
 from hyacinth.plugin import Plugin
@@ -27,19 +28,14 @@ settings = get_settings()
 _logger = logging.getLogger(__name__)
 
 
-@dataclass
-class ActiveSearch:
-    search_spec: SearchSpec
-    last_notified: datetime
-
-
 class ListingNotifier(ABC):
     @dataclass
     class Config:
+        id: int | None = None
         notification_frequency_seconds: int = settings.notification_frequency_seconds
         paused: bool = False
-        active_searches: list[ActiveSearch] = field(default_factory=list)
-        filters: dict[str, Filter] = field(default_factory=dict)
+        active_searches: list[NotifierSearch] = field(default_factory=list)
+        filters: list[Filter] = field(default_factory=list)
 
     def __init__(self, monitor: MarketplaceMonitor, config: ListingNotifier.Config) -> None:
         self.monitor = monitor
@@ -59,6 +55,7 @@ class ListingNotifier(ABC):
 
     def create_search(
         self,
+        name: str,
         plugin: Plugin,
         search_params_json: dict[str, Any],
         last_notified: datetime | None = None,
@@ -68,15 +65,35 @@ class ListingNotifier(ABC):
 
         with Session(expire_on_commit=False) as session:
             search_spec = add_search_spec(session, plugin.path, search_params_json)
+            notifier_search = add_notifier_search(session, self, name, search_spec, last_notified)
+            self.config.active_searches.append(notifier_search)
 
-        self.config.active_searches.append(
-            ActiveSearch(
-                search_spec=search_spec,
-                last_notified=last_notified,
-            )
-        )
+            # commit changes to the database
+            session.commit()
 
         self.monitor.register_search(search_spec)
+
+    def remove_search(self, search: NotifierSearch) -> None:
+        self.config.active_searches.remove(search)
+        self.monitor.remove_search(search.search_spec)
+
+        with Session() as session:
+            session.delete(search)
+            session.commit()
+
+    def update_search(self, search: NotifierSearch, new_search_params: dict[str, Any]) -> None:
+        with Session(expire_on_commit=False) as session:
+            new_search_spec = add_search_spec(
+                session, search.search_spec.plugin_path, new_search_params
+            )
+
+            search.search_spec = new_search_spec
+
+            session.merge(search)
+            session.commit()
+
+        self.monitor.remove_search(search.search_spec)
+        self.monitor.register_search(new_search_spec)
 
     def pause(self) -> None:
         self.config.paused = True
@@ -90,19 +107,10 @@ class ListingNotifier(ABC):
         """
         Apply filters to the listing to see if we should notify the user.
         """
-        listing = listing_metadata.listing
-        for filter_field, filter_ in self.config.filters.items():
-            if not hasattr(listing, filter_field):
-                # this filter is for a field not present in this type of listing
-                continue
-            listing_field = getattr(listing, filter_field)
+        listing: dict[str, Any] = json.loads(listing_metadata.listing.listing_json)
+        return filters.test(listing, self.config.filters)
 
-            if not filter_.test(listing_field):
-                return False
-
-        return True
-
-    async def _get_new_listings_for_search(self, search: ActiveSearch) -> list[ListingMetadata]:
+    async def _get_new_listings_for_search(self, search: NotifierSearch) -> list[ListingMetadata]:
         """
         Get new listings for a given search.
 
@@ -133,14 +141,20 @@ class ListingNotifier(ABC):
             listings.extend(await self._get_new_listings_for_search(search))
         if listings:
             # persist last_notified times to the database
+            _logger.debug(
+                f"Updating last_notified times for {len(self.config.active_searches)} active"
+                " searches"
+            )
             with Session() as session:
-                save_notifier_state(session, self)
+                for search in self.config.active_searches:
+                    session.merge(search)
+                session.commit()
 
         _logger.debug(
             f"Found {len(listings)} to notify for across {len(self.config.active_searches)} active"
             " searches"
         )
-        listings.sort(key=lambda l: l.listing.updated_at)
+        listings.sort(key=lambda lm: lm.listing.updated_at)
         return listings
 
     async def _notify_new_listings(self) -> None:

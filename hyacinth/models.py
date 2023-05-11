@@ -13,14 +13,6 @@ if TYPE_CHECKING:
     from hyacinth.plugin import Plugin
 
 
-class HashableBaseModel(BaseModel):
-    def __hash__(self) -> int:
-        return hash((type(self),) + tuple(self.__dict__.values()))
-
-    class Config:
-        allow_mutation = False
-
-
 class DiscordMessage(BaseModel):
     content: str | None = None
     embed: discord.Embed | None = None
@@ -55,5 +47,5 @@ class ListingMetadata:
     plugin: Plugin
 
 
-class BaseSearchParams(HashableBaseModel):
+class BaseSearchParams(BaseModel):
     pass
