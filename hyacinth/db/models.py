@@ -4,6 +4,7 @@ from datetime import datetime
 from functools import cached_property
 from typing import TYPE_CHECKING
 
+import sqlalchemy
 from sqlalchemy import DateTime, ForeignKey, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -131,7 +132,11 @@ class Filter(Base):
     notifier_id: Mapped[int] = mapped_column(ForeignKey("channelnotifier.id"), index=True)
 
     field: Mapped[str]
-    rule_type: Mapped[RuleType]
+    rule_type: Mapped[RuleType] = mapped_column(
+        # note: native enums seem to have some issues on this version of sqlalchemy
+        sqlalchemy.Enum(RuleType, native_enum=False),
+        index=True,
+    )
     rule_expr: Mapped[str]
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())

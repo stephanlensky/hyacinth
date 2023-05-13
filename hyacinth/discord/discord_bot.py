@@ -10,6 +10,12 @@ from discord.app_commands import Choice
 
 from hyacinth.db.crud.notifier import get_channel_notifiers
 from hyacinth.db.session import Session
+from hyacinth.discord.autocomplete import (
+    get_filter_autocomplete,
+    get_filter_field_autocomplete,
+    get_search_autocomplete,
+)
+from hyacinth.discord.commands.filter import create_filter, delete_filter, edit_filter
 from hyacinth.discord.commands.search import create_search, delete_search, edit_search
 from hyacinth.enums import RuleType
 from hyacinth.monitor import MarketplaceMonitor
@@ -93,6 +99,7 @@ class DiscordBot:
             description="Edit an existing search on this channel.",
         )
         @app_commands.describe(search="The search to edit.")
+        @app_commands.autocomplete(search=get_search_autocomplete(self))
         @log_exceptions(_logger)
         async def edit(interaction: discord.Interaction, search: str) -> None:
             await edit_search(self, interaction, search)
@@ -101,6 +108,7 @@ class DiscordBot:
             description="Delete an existing search on this channel.",
         )
         @app_commands.describe(search="The search to delete.")
+        @app_commands.autocomplete(search=get_search_autocomplete(self))
         @log_exceptions(_logger)
         async def delete(interaction: discord.Interaction, search: str) -> None:
             await delete_search(self, interaction, search)
@@ -119,31 +127,47 @@ class DiscordBot:
         @app_commands.command(  # type: ignore
             name="add", description="Add a new filter rule for notifications on this channel."
         )
-        @app_commands.describe(rule_type="The type of rule to add.", rule="The rule to add.")
+        @app_commands.describe(
+            field="The field to apply this filter to.",
+            rule_type="The type of rule to add.",
+            rule="The rule to add.",
+        )
+        @app_commands.autocomplete(field=get_filter_field_autocomplete(self))
         @app_commands.choices(
             rule_type=[
                 Choice(name=rule_type.value, value=rule_type.value) for rule_type in RuleType
             ]
         )
         @log_exceptions(_logger)
-        async def add(interaction: discord.Interaction, rule_type: str, rule: str) -> None:
-            await interaction.response.send_message("hello from the subcommand!")
+        async def add(
+            interaction: discord.Interaction, field: str, rule_type: str, rule: str
+        ) -> None:
+            await create_filter(self, interaction, field, RuleType(rule_type), rule)
 
         @app_commands.command(  # type: ignore
             name="edit",
             description="Edit an existing filter rule for notifications on this channel.",
         )
+        @app_commands.describe(
+            filter="The filter rule to edit.",
+            new_rule="The new rule to apply.",
+        )
+        @app_commands.autocomplete(filter=get_filter_autocomplete(self))
         @log_exceptions(_logger)
-        async def edit(interaction: discord.Interaction) -> None:
-            await interaction.response.send_message("hello from the subcommand!")
+        async def edit(interaction: discord.Interaction, filter: int, new_rule: str) -> None:
+            await edit_filter(self, interaction, filter, new_rule)
 
         @app_commands.command(  # type: ignore
             name="delete",
             description="Delete an existing filter rule for notifications on this channel.",
         )
+        @app_commands.describe(
+            filter="The filter rule to delete.",
+        )
+        @app_commands.autocomplete(filter=get_filter_autocomplete(self))
         @log_exceptions(_logger)
-        async def delete(interaction: discord.Interaction) -> None:
-            await interaction.response.send_message("hello from the subcommand!")
+        async def delete(interaction: discord.Interaction, filter: int) -> None:
+            await delete_filter(self, interaction, filter)
 
         filter_command_group = app_commands.Group(
             name="filter", description="Manage filter rules for this channel."

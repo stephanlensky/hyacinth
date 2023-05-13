@@ -11,10 +11,12 @@ from typing import TYPE_CHECKING, Any
 from apscheduler.triggers.interval import IntervalTrigger
 
 from hyacinth import filters
+from hyacinth.db.crud.filter import add_filter
 from hyacinth.db.crud.notifier_search import add_notifier_search
 from hyacinth.db.crud.search_spec import add_search_spec
 from hyacinth.db.models import Filter, Listing, NotifierSearch
 from hyacinth.db.session import Session
+from hyacinth.enums import RuleType
 from hyacinth.models import ListingMetadata
 from hyacinth.monitor import MarketplaceMonitor
 from hyacinth.plugin import Plugin
@@ -52,6 +54,9 @@ class ListingNotifier(ABC):
 
         for search in config.active_searches:
             self.monitor.register_search(search.search_spec)
+
+    def get_active_plugins(self) -> list[Plugin]:
+        return [search.search_spec.plugin for search in self.config.active_searches]
 
     def create_search(
         self,
@@ -94,6 +99,30 @@ class ListingNotifier(ABC):
 
         self.monitor.remove_search(search.search_spec)
         self.monitor.register_search(new_search_spec)
+
+    def add_filter(self, field: str, rule_type: RuleType, rule_expr: str) -> None:
+        if self.config.id is None:
+            raise ValueError("Cannot add filter to unsaved notifier!")
+
+        with Session(expire_on_commit=False) as session:
+            filter = add_filter(session, self.config.id, field, rule_type, rule_expr)
+            session.commit()
+
+        self.config.filters.append(filter)
+
+    def update_filter(self, filter: Filter, new_rule: str) -> None:
+        with Session(expire_on_commit=False) as session:
+            filter.rule_expr = new_rule
+
+            session.merge(filter)
+            session.commit()
+
+    def remove_filter(self, filter: Filter) -> None:
+        with Session(expire_on_commit=False) as session:
+            session.delete(filter)
+            session.commit()
+
+        self.config.filters.remove(filter)
 
     def pause(self) -> None:
         self.config.paused = True
