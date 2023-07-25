@@ -1,7 +1,6 @@
 from datetime import datetime
-from typing import Any
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 from hyacinth.models import BaseListing, BaseSearchParams
 
@@ -34,10 +33,8 @@ class CraigslistSite(BaseModel):
 
 class CraigslistSearchParams(BaseSearchParams):
     site: str
-    nearby_areas: list[str]
+    nearby_areas: list[str] | None = None
     category: str
 
-    @validator("nearby_areas", pre=True)
-    @classmethod
-    def nearby_areas_list_to_tuple(cls, v: Any) -> tuple:
-        return tuple(v)
+    def __hash__(self) -> int:  # make hashable to enable use with @cache
+        return hash((type(self),) + tuple(self.__dict__.values()))

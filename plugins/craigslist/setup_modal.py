@@ -1,18 +1,28 @@
 import logging
 from typing import Awaitable, Callable
 
+from discord import TextStyle
 from discord.interactions import Interaction
 from discord.ui import Modal, TextInput
 
 from plugins.craigslist.models import CraigslistSearchParams
-from plugins.craigslist.util import get_areas
+from plugins.craigslist.util import get_areas_reference
 
 _logger = logging.getLogger(__name__)
 
 
 class CraigslistSetupModal(Modal):
-    name: TextInput = TextInput(
-        label="Area", placeholder="Craigslist area to search", required=True
+    site: TextInput = TextInput(
+        label="Site",
+        placeholder="Name of Craigslist site to search (e.g. boston, sfbay)",
+        style=TextStyle.short,
+        required=True,
+    )
+    category: TextInput = TextInput(
+        label="Category",
+        placeholder="Category to search (e.g. sss, ata)",
+        style=TextStyle.short,
+        required=True,
     )
 
     def __init__(
@@ -23,15 +33,36 @@ class CraigslistSetupModal(Modal):
         self.callback = callback
         super().__init__(title="Craigslist Notifier Setup")
 
+        if prefill is not None:
+            self._prefill_fields(prefill)
+
+    def _prefill_fields(self, prefill: CraigslistSearchParams) -> None:
+        for child in self.children:
+            if not isinstance(child, TextInput):
+                continue
+
+            if child == self.site:
+                child.default = prefill.site
+            elif child == self.category:
+                child.default = prefill.category
+
     async def on_submit(self, interaction: Interaction) -> None:
+        if self.site.value not in get_areas_reference():
+            await interaction.response.send_message(
+                (
+                    f"Sorry {interaction.user.mention}, the site you entered does not appear to be"
+                    " a valid Craigslist site. Please try again."
+                ),
+                ephemeral=True,
+            )
+            return
+
         try:
-            area = get_areas()["New England/New York"]
             await self.callback(
                 interaction,
                 CraigslistSearchParams(
-                    site=area.site,
-                    nearby_areas=area.nearby_areas,
-                    category="sss",  # general for sale
+                    site=self.site.value,
+                    category=self.category.value,
                 ),
             )
         except Exception:
