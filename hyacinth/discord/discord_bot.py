@@ -16,7 +16,9 @@ from hyacinth.discord.autocomplete import (
     get_search_autocomplete,
 )
 from hyacinth.discord.commands.filter import create_filter, delete_filter, edit_filter
+from hyacinth.discord.commands.pause import pause as pause_cmd
 from hyacinth.discord.commands.search import create_search, delete_search, edit_search
+from hyacinth.discord.commands.show import show as show_cmd
 from hyacinth.enums import RuleType
 from hyacinth.monitor import MarketplaceMonitor
 from hyacinth.notifier import ChannelNotifier
@@ -185,7 +187,7 @@ class DiscordBot:
         )
         @log_exceptions(_logger)
         async def pause(interaction: discord.Interaction) -> None:
-            await interaction.response.send_message("hello from the subcommand!")
+            await pause_cmd(self, interaction)
 
         return pause
 
@@ -196,7 +198,7 @@ class DiscordBot:
         )
         @log_exceptions(_logger)
         async def show(interaction: discord.Interaction) -> None:
-            await interaction.response.send_message("hello from the subcommand!")
+            await show_cmd(self, interaction)
 
         return show
 

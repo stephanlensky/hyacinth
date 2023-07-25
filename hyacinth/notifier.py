@@ -12,6 +12,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from hyacinth import filters
 from hyacinth.db.crud.filter import add_filter
+from hyacinth.db.crud.notifier import save_notifier_state
 from hyacinth.db.crud.notifier_search import add_notifier_search
 from hyacinth.db.crud.search_spec import add_search_spec
 from hyacinth.db.models import Filter, Listing, NotifierSearch
@@ -124,13 +125,15 @@ class ListingNotifier(ABC):
 
         self.config.filters.remove(filter)
 
-    def pause(self) -> None:
-        self.config.paused = True
-        self.scheduler.pause_job(self.notify_job.id)
+    def set_paused(self, paused: bool) -> None:
+        self.config.paused = paused
+        if paused:
+            self.scheduler.pause_job(self.notify_job.id)
+        else:
+            self.scheduler.resume_job(self.notify_job.id)
 
-    def unpause(self) -> None:
-        self.config.paused = False
-        self.scheduler.resume_job(self.notify_job.id)
+        with Session(expire_on_commit=False) as session:
+            save_notifier_state(session, self)
 
     def should_notify_listing(self, listing_metadata: ListingMetadata) -> bool:
         """

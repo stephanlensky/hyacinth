@@ -10,7 +10,7 @@ credentials = f"{settings.postgres_user}:{settings.postgres_password}"
 host = f"db:5432/{settings.postgres_user}"
 connection_string = f"postgresql://{credentials}@{host}"
 
-engine = create_engine(f"postgresql://{credentials}@{host}", future=True, echo=True)
+engine = create_engine(f"postgresql://{credentials}@{host}", future=True)
 Session = sessionmaker(engine)
 
 Base.metadata.create_all(engine)

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import discord
 
+from hyacinth.discord.commands.shared import get_notifier
 from hyacinth.discord.views.confirm_delete import ConfirmDelete
 from hyacinth.enums import RuleType
 from hyacinth.filters import parse_numeric_rule_expr
@@ -14,27 +15,6 @@ if TYPE_CHECKING:
     from hyacinth.discord.discord_bot import DiscordBot
 
 _logger = logging.getLogger(__name__)
-
-
-async def _get_notifier(
-    bot: DiscordBot, interaction: discord.Interaction
-) -> ChannelNotifier | None:
-    if interaction.channel is None:
-        raise ValueError("Interaction channel is None")
-
-    # check if a notifier exists for this channel
-    notifier = bot.notifiers.get(interaction.channel.id)
-    if not notifier:
-        await interaction.response.send_message(
-            (
-                f"Sorry {interaction.user.mention}, this channel is not configured to send"
-                " notifications. Try creating a new search with `/search add`."
-            ),
-            ephemeral=True,
-        )
-        return None
-
-    return notifier
 
 
 def validate_filter_expr(notifier: ChannelNotifier, field: str, expr: str) -> None:
@@ -67,7 +47,7 @@ async def create_filter(
     rule_type: RuleType,
     rule_expr: str,
 ) -> None:
-    notifier = await _get_notifier(bot, interaction)
+    notifier = await get_notifier(bot, interaction)
     if not notifier:
         return
 
@@ -96,7 +76,7 @@ async def create_filter(
 async def edit_filter(
     bot: DiscordBot, interaction: discord.Interaction, filter_idx: int, new_rule: str
 ) -> None:
-    notifier = await _get_notifier(bot, interaction)
+    notifier = await get_notifier(bot, interaction)
     if not notifier:
         return
     filter_ = notifier.config.filters[filter_idx]
@@ -124,7 +104,7 @@ async def edit_filter(
 
 
 async def delete_filter(bot: DiscordBot, interaction: discord.Interaction, filter_idx: int) -> None:
-    notifier = await _get_notifier(bot, interaction)
+    notifier = await get_notifier(bot, interaction)
     if not notifier:
         return
     filter_ = notifier.config.filters[filter_idx]

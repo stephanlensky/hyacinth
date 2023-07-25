@@ -34,6 +34,24 @@ def add_notifier_state(session: Session, notifier: ListingNotifier) -> ChannelNo
     return notifier_state
 
 
+def save_notifier_state(session: Session, notifier: ListingNotifier) -> None:
+    from hyacinth.notifier import ChannelNotifier
+
+    if not isinstance(notifier, ChannelNotifier):
+        raise NotImplementedError(f"{type(notifier)} not implemented")
+    if notifier.config.id is None:
+        raise ValueError("Cannot save notifier state with no ID")
+
+    _logger.debug(f"Saving notifier state for channel {notifier.channel.id}")
+    notifier_state = (
+        session.query(ChannelNotifierState)
+        .filter(ChannelNotifierState.id == notifier.config.id)
+        .one()
+    )
+
+    notifier_state.paused = notifier.config.paused
+
+
 def get_channel_notifiers(
     session: Session, client: discord.Client, monitor: MarketplaceMonitor
 ) -> list[ChannelNotifier]:
