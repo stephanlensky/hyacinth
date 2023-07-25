@@ -22,19 +22,21 @@ async def show(
     if not notifier:
         return
 
-    active_searches = "\n".join(
-        [
-            f"- {get_plugin(s.search_spec.plugin_path).display_name} -"
-            f" {s.name}\n```json\n{s.search_spec.search_params_json}```"
-            for s in notifier.config.active_searches
-        ]
+    active_searches = (
+        "\n".join(
+            [
+                f"- {get_plugin(s.search_spec.plugin_path).display_name} -"
+                f" {s.name}\n```json\n{s.search_spec.search_params_json}```"
+                for s in notifier.config.active_searches
+            ]
+        )
+        or "No active searches. Try using `/search add` to create one.\n"
     )
     filters = (
         "\n".join(
             [f"- `{f.rule_type.name} {f.field}: {f.rule_expr}`" for f in notifier.config.filters]
         )
-        if notifier.config.filters
-        else "No filters set. Try using `/filter add` to create one."
+        or "No filters set. Try using `/filter add` to create one."
     )
     notifier_details = f"""
     The notifier on this channel is currently {'paused' if notifier.config.paused else 'active and ready to send notifications'}.
