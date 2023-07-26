@@ -13,8 +13,10 @@ services:
       - ./:/app
     links:
       - db
+      - browserless
     depends_on:
       - db
+      - browserless
 
   db:
     image: postgres
