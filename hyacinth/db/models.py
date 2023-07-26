@@ -170,6 +170,8 @@ class ChannelNotifierState(Base):
     channel_id: Mapped[str] = mapped_column(unique=True)
     notification_frequency_seconds: Mapped[int]
     paused: Mapped[bool] = mapped_column(default=False)
+    home_latitude: Mapped[float | None]
+    home_longitude: Mapped[float | None]
     active_searches: Mapped[list[NotifierSearch]] = relationship(
         "NotifierSearch", back_populates="notifier", cascade="all, delete-orphan"
     )

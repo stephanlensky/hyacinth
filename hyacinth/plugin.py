@@ -3,12 +3,15 @@ from __future__ import annotations
 import importlib
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Awaitable, Callable, Generic, Type, TypeVar, get_args
+from typing import TYPE_CHECKING, Awaitable, Callable, Generic, Type, TypeVar, get_args
 
 import discord
 
 from hyacinth.exceptions import MissingPluginError
 from hyacinth.models import BaseListing, BaseSearchParams, DiscordMessage
+
+if TYPE_CHECKING:
+    from hyacinth.notifier import ChannelNotifier
 
 SearchParamsType = TypeVar("SearchParamsType", bound=BaseSearchParams)
 ListingType = TypeVar("ListingType", bound=BaseListing)
@@ -68,7 +71,7 @@ class Plugin(ABC, Generic[SearchParamsType, ListingType]):
         pass
 
     @abstractmethod
-    def format_listing(self, listing: ListingType) -> DiscordMessage:
+    def format_listing(self, notifier: ChannelNotifier, listing: ListingType) -> DiscordMessage:
         pass
 
     @abstractmethod

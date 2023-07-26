@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 
 from hyacinth.settings import get_settings
-from hyacinth.util.geo import distance_miles, reverse_geotag
+from hyacinth.util.geo import reverse_geotag
 from hyacinth.util.s3 import mirror_image
 from hyacinth.util.scraping import get_page_content
 from plugins.craigslist.models import CraigslistListing, CraigslistSearchParams
@@ -90,9 +90,6 @@ async def _search(
 def _enrich_listing(listing: CraigslistListing) -> None:
     if not listing.latitude or not listing.longitude:
         listing.latitude, listing.longitude = get_geotag_from_url(listing.url)
-    listing.distance_miles = distance_miles(
-        (listing.latitude, listing.longitude), settings.home_lat_long
-    )
 
     location = reverse_geotag((listing.latitude, listing.longitude))
     listing.city = location.city

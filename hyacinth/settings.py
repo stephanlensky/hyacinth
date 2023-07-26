@@ -38,11 +38,6 @@ class Settings(BaseSettings):
 
     discord_token: str
 
-    # eventually this should be configured on a per-notifier basis
-    # just set it as a constant for now
-    # note for intrepid data miners: this is the MA state house, not my actual home address :)
-    home_lat_long: tuple[float, float] = (42.35871993931778, -71.06382445970375)
-
     # immediately send notifications for listings this far in the past after creating a new notifier
     notifier_backdate_time_hours: int = 6
 

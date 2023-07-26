@@ -11,10 +11,12 @@ from discord.app_commands import Choice
 from hyacinth.db.crud.notifier import get_channel_notifiers
 from hyacinth.db.session import Session
 from hyacinth.discord.autocomplete import (
+    get_configure_autocomplete,
     get_filter_autocomplete,
     get_filter_field_autocomplete,
     get_search_autocomplete,
 )
+from hyacinth.discord.commands.configure import configure as configure_cmd
 from hyacinth.discord.commands.filter import create_filter, delete_filter, edit_filter
 from hyacinth.discord.commands.pause import pause as pause_cmd
 from hyacinth.discord.commands.search import create_search, delete_search, edit_search
@@ -66,6 +68,7 @@ class DiscordBot:
         self.tree.add_command(self.filter_command_group)
         self.tree.add_command(self.pause_command)
         self.tree.add_command(self.show_command)
+        self.tree.add_command(self.configure_command)
 
         for guild in self.client.guilds:
             _logger.info(f"Adding commands to guild {guild.name}")
@@ -201,6 +204,22 @@ class DiscordBot:
             await show_cmd(self, interaction)
 
         return show
+
+    @property
+    def configure_command(self) -> app_commands.Command:
+        @app_commands.command(  # type: ignore
+            description="Change notification setttings for this channel."
+        )
+        @app_commands.describe(
+            setting="The name of the setting you wish to change.",
+            value="The value to change this setting to.",
+        )
+        @app_commands.autocomplete(setting=get_configure_autocomplete(self))
+        @log_exceptions(_logger)
+        async def configure(interaction: discord.Interaction, setting: str, value: str) -> None:
+            await configure_cmd(self, interaction, setting, value)
+
+        return configure
 
 
 async def start() -> None:

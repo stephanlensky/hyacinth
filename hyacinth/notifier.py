@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -37,6 +38,7 @@ class ListingNotifier(ABC):
         id: int | None = None
         notification_frequency_seconds: int = settings.notification_frequency_seconds
         paused: bool = False
+        home_location: tuple[float, float] | None = None
         active_searches: list[NotifierSearch] = field(default_factory=list)
         filters: list[Filter] = field(default_factory=list)
 
@@ -72,7 +74,9 @@ class ListingNotifier(ABC):
         last_notified: datetime | None = None,
     ) -> None:
         if last_notified is None:
-            last_notified = datetime.now() - timedelta(hours=settings.notifier_backdate_time_hours)
+            last_notified = datetime.utcnow().replace(tzinfo=ZoneInfo("UTC")) - timedelta(
+                hours=settings.notifier_backdate_time_hours
+            )
 
         with Session(expire_on_commit=False) as session:
             search_spec = add_search_spec(session, plugin.path, search_params_json)
@@ -136,6 +140,23 @@ class ListingNotifier(ABC):
             self.scheduler.pause_job(self.notify_job.id)
         else:
             self.scheduler.resume_job(self.notify_job.id)
+
+        with Session() as session:
+            save_notifier_state(session, self)
+            session.commit()
+
+    def set_notification_frequency(self, frequency_seconds: int) -> None:
+        self.config.notification_frequency_seconds = frequency_seconds
+        self.scheduler.reschedule_job(
+            self.notify_job.id, trigger=IntervalTrigger(seconds=frequency_seconds)
+        )
+
+        with Session() as session:
+            save_notifier_state(session, self)
+            session.commit()
+
+    def set_home_location(self, home_location: tuple[float, float] | None) -> None:
+        self.config.home_location = home_location
 
         with Session(expire_on_commit=False) as session:
             save_notifier_state(session, self)
@@ -255,5 +276,5 @@ class ChannelNotifier(ListingNotifier):
 
     async def notify(self, plugin: Plugin, listing: Listing) -> None:
         parsed_listing = plugin.listing_cls.parse_raw(listing.listing_json)
-        message = plugin.format_listing(parsed_listing)
+        message = plugin.format_listing(self, parsed_listing)
         await self.channel.send(**message.dict())

@@ -8,6 +8,7 @@ import discord
 from discord.ui import Modal
 
 from hyacinth.models import DiscordMessage
+from hyacinth.notifier import ChannelNotifier
 from hyacinth.plugin import Plugin
 from hyacinth.settings import get_settings
 from plugins.craigslist.client import get_listings
@@ -36,8 +37,10 @@ class CraigslistPlugin(Plugin[CraigslistSearchParams, CraigslistListing]):
     ) -> list[CraigslistListing]:
         return await get_listings(search_params, after_time, limit)
 
-    def format_listing(self, listing: CraigslistListing) -> DiscordMessage:
-        return format_listing(listing)
+    def format_listing(
+        self, notifier: ChannelNotifier, listing: CraigslistListing
+    ) -> DiscordMessage:
+        return format_listing(notifier, listing)
 
     def get_setup_modal(
         self,

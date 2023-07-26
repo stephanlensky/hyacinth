@@ -50,6 +50,13 @@ def save_notifier_state(session: Session, notifier: ListingNotifier) -> None:
     )
 
     notifier_state.paused = notifier.config.paused
+    notifier_state.notification_frequency_seconds = notifier.config.notification_frequency_seconds
+    if notifier.config.home_location is not None:
+        notifier_state.home_latitude = notifier.config.home_location[0]
+        notifier_state.home_longitude = notifier.config.home_location[1]
+    else:
+        notifier_state.home_latitude = None
+        notifier_state.home_longitude = None
 
 
 def get_channel_notifiers(
@@ -77,6 +84,13 @@ def get_channel_notifiers(
             continue
 
         # Otherwise, create a new ChannelNotifier from the saved state.
+        if notifier_state.home_latitude is not None and notifier_state.home_longitude is not None:
+            home_location = (
+                notifier_state.home_latitude,
+                notifier_state.home_longitude,
+            )
+        else:
+            home_location = None
         notifier = ChannelNotifier(
             # assume saved channel type is messageable
             notifier_channel,  # type: ignore[arg-type]
@@ -85,6 +99,7 @@ def get_channel_notifiers(
                 id=notifier_state.id,
                 notification_frequency_seconds=notifier_state.notification_frequency_seconds,
                 paused=notifier_state.paused,
+                home_location=home_location,
                 active_searches=list(notifier_state.active_searches),
                 filters=list(notifier_state.filters),
             ),

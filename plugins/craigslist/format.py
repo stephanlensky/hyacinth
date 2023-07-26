@@ -3,10 +3,12 @@ from datetime import timezone
 import discord
 
 from hyacinth.models import DiscordMessage
+from hyacinth.notifier import ChannelNotifier
+from hyacinth.util.geo import distance_miles
 from plugins.craigslist.models import CraigslistListing
 
 
-def format_listing(listing: CraigslistListing) -> DiscordMessage:
+def format_listing(notifier: ChannelNotifier, listing: CraigslistListing) -> DiscordMessage:
     match (listing.city, listing.state):
         case (None, None):
             location_part = ""
@@ -17,8 +19,15 @@ def format_listing(listing: CraigslistListing) -> DiscordMessage:
         case (city, state):
             location_part = f" - {city}, {state}"
     distance_part = ""
-    if listing.distance_miles is not None:
-        distance_part = f" ({int(listing.distance_miles)} mi. away)"
+    if (
+        notifier.config.home_location is not None
+        and listing.latitude is not None
+        and listing.longitude is not None
+    ):
+        distance = distance_miles(
+            notifier.config.home_location, (listing.latitude, listing.longitude)
+        )
+        distance_part = f" ({int(distance)} mi. away)"
     description = f"**${int(listing.price)}{location_part}{distance_part}**\n\n{listing.body}"
 
     embed = discord.Embed(

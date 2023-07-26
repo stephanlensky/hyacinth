@@ -6,6 +6,7 @@ from discord import Interaction
 from discord.app_commands import Choice
 
 from hyacinth.db.models import Filter
+from hyacinth.discord.commands.configure import configurable_settings
 
 if TYPE_CHECKING:
     from hyacinth.discord.discord_bot import DiscordBot
@@ -88,3 +89,20 @@ def get_filter_autocomplete(
         ][:MAX_AUTOCOMPLETE_CHOICES]
 
     return filter_field_autocomplete
+
+
+def get_configure_autocomplete(
+    bot: DiscordBot,
+) -> Callable[[Interaction, str], Coroutine[Any, Any, list[Choice[str]]]]:
+    async def configure_autocomplete(interaction: Interaction, current: str) -> list[Choice[str]]:
+        channel_id = interaction.channel_id
+        if channel_id not in bot.notifiers:
+            return []
+
+        return [
+            Choice(name=field, value=field)
+            for field in configurable_settings
+            if field.lower().startswith(current.lower())
+        ][:MAX_AUTOCOMPLETE_CHOICES]
+
+    return configure_autocomplete
