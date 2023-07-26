@@ -10,8 +10,8 @@ from discord.ui import Modal
 from hyacinth.models import DiscordMessage
 from hyacinth.plugin import Plugin
 from hyacinth.settings import get_settings
+from plugins.craigslist.client import get_listings
 from plugins.craigslist.format import format_listing
-from plugins.craigslist.listings import get_listings
 from plugins.craigslist.models import CraigslistListing, CraigslistSearchParams
 from plugins.craigslist.setup_modal import CraigslistSetupModal
 
@@ -31,10 +31,10 @@ class CraigslistPlugin(Plugin[CraigslistSearchParams, CraigslistListing]):
     def polling_interval(self, search_params: CraigslistSearchParams) -> int:
         return settings.craigslist_poll_interval_seconds
 
-    def get_listings(
+    async def get_listings(
         self, search_params: CraigslistSearchParams, after_time: datetime, limit: int | None = None
     ) -> list[CraigslistListing]:
-        return get_listings(search_params, after_time, limit)
+        return await get_listings(search_params, after_time, limit)
 
     def format_listing(self, listing: CraigslistListing) -> DiscordMessage:
         return format_listing(listing)

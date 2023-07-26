@@ -7,7 +7,7 @@ from boolean import Expression
 
 from hyacinth.db.models import Filter
 from hyacinth.enums import RuleType
-from hyacinth.util.boolean_rule_algebra import apply_rules, parse_rule
+from hyacinth.util.boolean_algebra import evaluate_expression, parse_expression
 
 
 @dataclass
@@ -64,15 +64,17 @@ def _apply_numeric_rule_expr(expr: str, field: float | int) -> bool:
 
 
 def _apply_string_rule_expr(expr: str, field: str) -> bool:
-    rule = parse_string_rule_expr(expr)
-    return apply_rules([rule], field)
+    expr = expr.lower()
+    field = field.lower()
+    expression = parse_string_rule_expr(expr)
+    return evaluate_expression(expression, field)
 
 
 def parse_string_rule_expr(expr: str) -> Expression:
     """
     Parse a string rule expression into a boolean expression.
     """
-    return parse_rule(expr)
+    return parse_expression(expr)
 
 
 def parse_numeric_rule_expr(expr: str) -> NumericRule:

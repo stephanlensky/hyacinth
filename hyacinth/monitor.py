@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Sequence
+from zoneinfo import ZoneInfo
 
 from apscheduler.job import Job
 from apscheduler.triggers.interval import IntervalTrigger
@@ -10,7 +11,7 @@ from hyacinth.db.crud.listing import get_listings as get_listings_from_db
 from hyacinth.db.models import Listing, SearchSpec
 from hyacinth.db.session import Session
 from hyacinth.models import BaseListing
-from hyacinth.scheduler import get_threadpool_scheduler
+from hyacinth.scheduler import get_async_scheduler
 from hyacinth.settings import get_settings
 
 settings = get_settings()
@@ -19,7 +20,7 @@ _logger = logging.getLogger(__name__)
 
 class MarketplaceMonitor:
     def __init__(self) -> None:
-        self.scheduler = get_threadpool_scheduler()
+        self.scheduler = get_async_scheduler()
         self.search_specs: list[SearchSpec] = []
         self.search_spec_job_mapping: dict[int, Job] = {}  # SearchSpec id -> job
         self.search_spec_ref_count: dict[int, int] = {}  # SearchSpec id -> ref count
@@ -59,14 +60,15 @@ class MarketplaceMonitor:
         with Session() as session:
             return get_listings_from_db(session, search_spec.id, after_time)
 
-    def poll_search(self, search_spec: SearchSpec) -> None:
+    async def poll_search(self, search_spec: SearchSpec) -> None:
         if settings.disable_search_polling:
             _logger.debug(f"Search polling is disabled, would poll search {search_spec}")
             return
 
         with Session() as session:
-            _logger.debug(f"Polling search {search_spec}")
-            after_time = datetime.now() - timedelta(hours=settings.notifier_backdate_time_hours)
+            after_time = datetime.utcnow().replace(tzinfo=ZoneInfo("UTC")) - timedelta(
+                hours=settings.notifier_backdate_time_hours
+            )
             last_listing = get_last_listing_from_db(session, search_spec.id)
             if last_listing is not None:
                 # resume at the last listing time if it was more recent than 7 days ago
@@ -74,8 +76,9 @@ class MarketplaceMonitor:
                 _logger.debug(
                     f"Found recent listing at {last_listing.created_at}, resuming at {after_time}."
                 )
+            _logger.debug(f"Polling search {search_spec} since {after_time}")
 
-            listings: list[BaseListing] = search_spec.plugin.get_listings(
+            listings: list[BaseListing] = await search_spec.plugin.get_listings(
                 search_spec.search_params, after_time
             )
             session.add_all(
@@ -87,4 +90,5 @@ class MarketplaceMonitor:
     def __del__(self) -> None:
         for search_spec in self.search_spec_job_mapping:
             job = self.search_spec_job_mapping[search_spec]
+            self.scheduler.remove_job(job.id)
             self.scheduler.remove_job(job.id)

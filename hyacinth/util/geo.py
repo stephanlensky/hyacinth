@@ -102,6 +102,7 @@ class LocalReverseGeocoder:
             hasc: KDTree(self.cities_by_hasc[hasc][["latitude", "longitude"]])
             for hasc in self.cities_by_hasc
         }
+        _logger.info("Done!")
 
     def ensure_geospatial_datasets_downloaded(self) -> None:
         if not GADM_USA_GPKG_PATH.exists() or not GEONAMES_CITIES_PATH.exists():

@@ -62,7 +62,7 @@ class Plugin(ABC, Generic[SearchParamsType, ListingType]):
         """Recommended polling interval in seconds"""
 
     @abstractmethod
-    def get_listings(
+    async def get_listings(
         self, search_params: SearchParamsType, after_time: datetime, limit: int | None = None
     ) -> list[ListingType]:
         pass

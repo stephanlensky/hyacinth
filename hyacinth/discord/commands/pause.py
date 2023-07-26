@@ -21,6 +21,7 @@ async def pause(
     if not notifier:
         return
 
+    _logger.debug(f"Received /pause command, current state is: {notifier.config.paused}")
     notifier.set_paused(not notifier.config.paused)
     await interaction.response.send_message(
         (

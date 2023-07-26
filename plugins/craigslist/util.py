@@ -5,7 +5,7 @@ import re
 from functools import cache
 from pathlib import Path
 
-import requests
+import httpx
 from pydantic import parse_obj_as
 
 from hyacinth.settings import get_settings
@@ -25,7 +25,7 @@ def get_areas_reference(
             areas_json = json.load(areas_json_file)
     else:
         _logger.info("Fetching Craigslist Areas reference from reference.craigslist.org")
-        r = requests.get("https://reference.craigslist.org/Areas")
+        r = httpx.get("https://reference.craigslist.org/Areas")
         areas_json = r.json()
 
     sites = parse_obj_as(list[CraigslistSite], areas_json)

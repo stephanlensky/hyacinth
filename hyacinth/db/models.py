@@ -37,13 +37,17 @@ class Listing(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     search_spec_id: Mapped[int] = mapped_column(ForeignKey("searchspec.id"), index=True)
-    listing_json: Mapped[str] = mapped_column(index=True)  # details of listing are plugin-specific
+    listing_json: Mapped[str] = mapped_column()  # details of listing are plugin-specific
     # post date of the listing itself
-    creation_time: Mapped[datetime] = mapped_column(DateTime, index=True)
+    creation_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
     # when we saw it
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now(), index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now(), onupdate=func.now()
+    )
 
     search_spec: Mapped[SearchSpec] = relationship("SearchSpec")
 
@@ -72,10 +76,12 @@ class SearchSpec(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     plugin_path: Mapped[str] = mapped_column(index=True)
-    search_params_json: Mapped[str] = mapped_column(index=True)  # search params are plugin-specific
+    search_params_json: Mapped[str] = mapped_column()  # search params are plugin-specific
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now(), onupdate=func.now()
+    )
 
     @cached_property
     def plugin(self) -> Plugin:
@@ -106,11 +112,13 @@ class NotifierSearch(Base):
     name: Mapped[str]
 
     notifier_id: Mapped[int] = mapped_column(ForeignKey("channelnotifier.id"), index=True)
-    last_notified: Mapped[datetime] = mapped_column(DateTime)
+    last_notified: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     search_spec_id: Mapped[int] = mapped_column(ForeignKey("searchspec.id"), index=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now(), onupdate=func.now()
+    )
 
     notifier: Mapped[ChannelNotifierState] = relationship(
         "ChannelNotifierState", back_populates="active_searches"
@@ -139,8 +147,10 @@ class Filter(Base):
     )
     rule_expr: Mapped[str]
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now(), onupdate=func.now()
+    )
 
     notifier: Mapped[ChannelNotifierState] = relationship("ChannelNotifierState")
 
@@ -164,8 +174,10 @@ class ChannelNotifierState(Base):
         "NotifierSearch", back_populates="notifier", cascade="all, delete-orphan"
     )
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now(), onupdate=func.now()
+    )
 
     filters: Mapped[list[Filter]] = relationship(
         "Filter", back_populates="notifier", cascade="all, delete-orphan"

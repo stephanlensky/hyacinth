@@ -13,4 +13,5 @@ connection_string = f"postgresql://{credentials}@{host}"
 engine = create_engine(f"postgresql://{credentials}@{host}", future=True)
 Session = sessionmaker(engine)
 
+Base.metadata.drop_all(engine)
 Base.metadata.create_all(engine)

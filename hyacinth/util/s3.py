@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import boto3
-import requests
+import httpx
 
 from hyacinth.settings import get_settings
 
@@ -43,7 +43,7 @@ def mirror_image(url: str) -> str:
     if settings.s3_bucket is None:
         raise ValueError("setting.s3_bucket must be set!")
 
-    image_response = requests.get(url)
+    image_response = httpx.get(url)
     image_response.raise_for_status()
 
     image_key = str(uuid.uuid4())

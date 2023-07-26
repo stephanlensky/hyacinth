@@ -5,6 +5,9 @@ from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
+    # timezone
+    tz: str
+
     # logging config
     log_level: int = logging.DEBUG
     log_format: str = "%(asctime)s [%(process)d] [%(levelname)s] %(name)-16s %(message)s"
@@ -41,10 +44,10 @@ class Settings(BaseSettings):
     home_lat_long: tuple[float, float] = (42.35871993931778, -71.06382445970375)
 
     # immediately send notifications for listings this far in the past after creating a new notifier
-    notifier_backdate_time_hours: int = 24
+    notifier_backdate_time_hours: int = 6
 
     # how often to check the database for new listings to notify each channel about
-    notification_frequency_seconds: int = 60
+    notification_frequency_seconds: int = 15
 
     # for some sources, thumbnails may be mirrored to s3 before display
     # this is to account for some websites blocking discord from loading the image preview in the
@@ -56,6 +59,9 @@ class Settings(BaseSettings):
     s3_access_key: str | None
     s3_secret_key: str | None
     s3_bucket: str | None
+
+    # sources are scraped using browserless, a headless browser, to avoid bot detection
+    browserless_url: str = "http://browserless:3000"
 
     # Development setings
     disable_search_polling: bool = False

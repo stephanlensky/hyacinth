@@ -14,8 +14,8 @@ class CraigslistListing(BaseListing):
     price: float
     city: str | None
     state: str | None
-    latitude: float
-    longitude: float
+    latitude: float | None
+    longitude: float | None
     distance_miles: float | None = None
     updated_time: datetime
 

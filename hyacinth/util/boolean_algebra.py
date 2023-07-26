@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from boolean import (
     TOKEN_AND,
     TOKEN_FALSE,
@@ -16,9 +14,6 @@ from boolean import (
     ParseError,
     boolean,
 )
-
-if TYPE_CHECKING:
-    from hyacinth.filters import Rule
 
 
 class BooleanRuleAlgebra(BooleanAlgebra):
@@ -152,25 +147,15 @@ class BooleanRuleAlgebra(BooleanAlgebra):
 algebra = BooleanRuleAlgebra(allowed_in_token=(".", ":", "_", "-"))
 
 
-def apply_rules(rules: list[Rule], text: str) -> bool:
-    total_rule: Expression | None = None
-    for rule in rules:
-        if total_rule is None:
-            total_rule = rule.expression
-        else:
-            total_rule = total_rule | rule.expression
-
-    if total_rule is None:
-        return False
-
-    symbols = total_rule.get_symbols()
+def evaluate_expression(expression: Expression, text: str) -> bool:
+    symbols = expression.get_symbols()
     subs = {}
     for sym in symbols:
         subs[sym] = algebra.TRUE if sym.obj in text else algebra.FALSE
-    total_rule = total_rule.subs(subs)
+    total_rule = expression.subs(subs)
     simplified_rule = total_rule.simplify()
     return bool(simplified_rule)
 
 
-def parse_rule(rule_str: str) -> Expression:
+def parse_expression(rule_str: str) -> Expression:
     return algebra.parse(rule_str)

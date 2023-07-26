@@ -56,6 +56,11 @@ class ListingNotifier(ABC):
         for search in config.active_searches:
             self.monitor.register_search(search.search_spec)
 
+        _logger.debug(
+            "Successfully initialized notifier! Notifier state is:"
+            f" {'paused' if self.config.paused else 'unpaused'}"
+        )
+
     def get_active_plugins(self) -> list[Plugin]:
         return [search.search_spec.plugin for search in self.config.active_searches]
 
@@ -134,6 +139,7 @@ class ListingNotifier(ABC):
 
         with Session(expire_on_commit=False) as session:
             save_notifier_state(session, self)
+            session.commit()
 
     def should_notify_listing(self, listing_metadata: ListingMetadata) -> bool:
         """
@@ -190,6 +196,7 @@ class ListingNotifier(ABC):
         return listings
 
     async def _notify_new_listings(self) -> None:
+        _logger.debug("Running notifier for new listings!")
         not_yet_notified_listings: list[ListingMetadata] = []
         try:
             listings = await self._get_new_listings()

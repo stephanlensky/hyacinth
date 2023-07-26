@@ -24,6 +24,13 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: "unless-stopped"
 
+  browserless:
+    image: browserless/chrome
+    environment:
+      - MAX_CONCURRENT_SESSIONS=10
+    ports:
+      - "3000:3000"
+
   devbox: &devbox
     <<: *service
     build:

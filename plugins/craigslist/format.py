@@ -18,8 +18,8 @@ def format_listing(listing: CraigslistListing) -> DiscordMessage:
             location_part = f" - {city}, {state}"
     distance_part = ""
     if listing.distance_miles is not None:
-        distance_part = f" ({int(listing.distance_miles)} mi."
-    description = f"**${int(listing.price)}{location_part}{distance_part} away)**\n\n{listing.body}"
+        distance_part = f" ({int(listing.distance_miles)} mi. away)"
+    description = f"**${int(listing.price)}{location_part}{distance_part}**\n\n{listing.body}"
 
     embed = discord.Embed(
         title=listing.title,
