@@ -21,7 +21,7 @@ boto3 = "^1.23.8"
 geopandas = "^0.11.0"
 geopy = "^2.2.0"
 psycopg2 = "^2.9.3"
-pydantic = { extras = ["dotenv"], version = "^1.9.0" }
+pydantic = "^2.1.1"
 python = ">=3.11,<3.12"
 rtree = "^1.0.1"
 scipy = "^1.8.0"
@@ -29,6 +29,7 @@ sqlalchemy = "^2.0.12"
 wrapt = "^1.14.0"
 httpx = "^0.24.1"
 beautifulsoup4 = "^4.12.2"
+pydantic-settings = "^2.0.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.3.0"

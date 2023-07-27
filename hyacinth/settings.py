@@ -1,10 +1,12 @@
 import logging
 from pathlib import Path
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
     # timezone
     tz: str
 
@@ -48,7 +50,7 @@ class Settings(BaseSettings):
     # notification embed
     # requires s3 credentials
     enable_s3_thumbnail_mirroring: bool = False
-    s3_image_mirror_expiration_days = 1
+    s3_image_mirror_expiration_days: int = 1
     s3_url: str | None
     s3_access_key: str | None
     s3_secret_key: str | None
@@ -59,10 +61,6 @@ class Settings(BaseSettings):
 
     # Development setings
     disable_search_polling: bool = False
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 
 def get_settings() -> Settings:

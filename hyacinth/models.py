@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import discord
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from hyacinth.db.models import Listing
 
@@ -17,7 +17,7 @@ class DiscordMessage(BaseModel):
     content: str | None = None
     embed: discord.Embed | None = None
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     @classmethod
     def ensure_content(cls, values: dict[str, Any]) -> dict[str, Any]:
         content, embed = values.get("content"), values.get("embed")
@@ -26,13 +26,12 @@ class DiscordMessage(BaseModel):
 
         return values
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Location(BaseModel):
-    city: str | None
-    state: str | None
+    city: str | None = None
+    state: str | None = None
     latitude: float
     longitude: float
 
