@@ -54,7 +54,6 @@ def test__parse_result_details__sample_result_details_without_price__returns_pri
 
     listing = _parse_result_details("some-url", content)
     assert listing.price == 0
-    print(listing.body)
 
 
 def test__parse_result_details__sample_result_details_single_image__returns_one_image() -> None:

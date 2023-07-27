@@ -1,3 +1,4 @@
+PYTHON_DIRS=hyacinth plugins tests
 TEST_RESOURCES_DIR=tests/resources
 
 CRAIGSLIST_SAMPLE_SEARCH_URL=https://boston.craigslist.org/search/sss
@@ -10,8 +11,11 @@ all:
 install:
 	@poetry install
 
-pytest:
-	@poetry run pytest -rP
+test:
+	poetry run ruff --fix ${PYTHON_DIRS}
+	poetry run black ${PYTHON_DIRS}
+	poetry run mypy ${PYTHON_DIRS}
+	poetry run pytest -rP
 
 run:
 	@poetry run hyacinth

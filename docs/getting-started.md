@@ -12,7 +12,7 @@ In order to connect Hyacinth to Discord, you must first configure an application
 4. Add an OAuth redirect URL in the `OAuth2 -> General` tab. This can be anything, the exact URL does not matter.
 5. Generate an invite URL in the `OAuth2 -> URL Generator` tab. Request the "Bot" scope and the following permissions:
 
-    ![required permissions](assets/permissions.png)
+   ![required permissions](assets/permissions.png)
 
 6. Copy the generated URL and invite the bot to your server!
 
@@ -22,19 +22,19 @@ In order to connect Hyacinth to Discord, you must first configure an application
 - Clone the [project repository](https://github.com/stephanlensky/hyacinth)
 - In the cloned project folder, create a new file named `.env` with the following content:
 
-    ```env
-    # in the unix tz database format, ex. America/New_York
-    TZ=<your timezone>
+  ```env
+  # in the unix tz database format, ex. America/New_York
+  TZ=<your timezone>
 
-    # copy it from the discord developer portal!
-    DISCORD_TOKEN=<your discord token>
+  # copy it from the discord developer portal!
+  DISCORD_TOKEN=<your discord token>
 
-    # any password is fine, it will be used for the bot's internal database
-    POSTGRES_USER=postgres
-    POSTGRES_PASSWORD=<a random password>
-    ```
+  # any password is fine, it will be used for the bot's internal database
+  POSTGRES_USER=postgres
+  POSTGRES_PASSWORD=<a random password>
+  ```
 
-    Remember to replace the values inside `<>`!
+  Remember to replace the values inside `<>`!
 
 ## Running the bot
 

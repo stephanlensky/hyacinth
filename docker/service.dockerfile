@@ -31,4 +31,4 @@ RUN poetry install
 FROM shared-setup as prod
 RUN poetry install --no-dev
 
-CMD ["/bin/sh", "./docker/scripts/bot-docker-entrypoint.sh"]
+CMD ["make", "run"]

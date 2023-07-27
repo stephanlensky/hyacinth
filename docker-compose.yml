@@ -47,13 +47,7 @@ services:
 
   test:
     <<: *devbox
-    command: ["/bin/sh", "docker/scripts/test-docker-entrypoint.sh"]
-
-  migrations:
-    <<: *service
-    depends_on:
-      - db
-    command: ["/bin/sh", "docker/scripts/migrations-docker-entrypoint.sh"]
+    command: ["make", "test"]
 
   pgweb:
     image: sosedoff/pgweb
