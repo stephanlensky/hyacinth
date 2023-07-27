@@ -1,4 +1,3 @@
-import configparser
 import json
 import logging
 import re
@@ -9,7 +8,7 @@ import httpx
 from pydantic import parse_obj_as
 
 from hyacinth.settings import get_settings
-from plugins.craigslist.models import CraigslistArea, CraigslistSite
+from plugins.craigslist.models import CraigslistSite
 
 settings = get_settings()
 _logger = logging.getLogger(__name__)
@@ -33,22 +32,6 @@ def get_areas_reference(
     _logger.info("Loaded Craigslist Areas reference")
 
     return areas_reference
-
-
-@cache
-def get_areas(config_path: Path = settings.craigslist_areas_ini_path) -> dict[str, CraigslistArea]:
-    cl_config = configparser.ConfigParser()
-    cl_config.read(config_path)
-    areas = {}
-    for area in cl_config:
-        if area == "DEFAULT":
-            continue
-        areas[area] = CraigslistArea(
-            site=cl_config[area]["site"],
-            nearby_areas=cl_config[area]["nearbyAreas"].split(","),
-        )
-
-    return areas
 
 
 def get_geotag_from_url(url: str) -> tuple[float, float]:

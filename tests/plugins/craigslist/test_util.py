@@ -27,13 +27,6 @@ def test_get_areas_reference__from_disk() -> None:
     __validate_areas_reference(areas_reference)
 
 
-def test_get_areas() -> None:
-    areas = util.get_areas()
-    assert "New England/New York" in areas
-    assert areas["New England/New York"].site == "worcester"
-    assert "198" in areas["New England/New York"].nearby_areas
-
-
 def test_get_geotag_from_url__worcester() -> None:
     geotag = util.get_geotag_from_url(
         "https://worcester.craigslist.org/mcy/d/rochdale-2018-ninja-400/7466500248.html"

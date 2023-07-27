@@ -20,11 +20,6 @@ class CraigslistListing(BaseListing):
     updated_time: datetime
 
 
-class CraigslistArea(BaseModel):
-    site: str
-    nearby_areas: list[str]
-
-
 class CraigslistSite(BaseModel):
     hostname: str = Field(alias="Hostname")
     latitude: float = Field(alias="Latitude")

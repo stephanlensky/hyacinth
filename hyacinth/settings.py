@@ -31,7 +31,6 @@ class Settings(BaseSettings):
 
     # craigslist data files
     craigslist_areas_reference_json_path: Path = Path("craigslist_areas.json")
-    craigslist_areas_ini_path: Path = Path("craigslist_areas.ini")
 
     # polling intervals for different sources
     craigslist_poll_interval_seconds: int = 600
