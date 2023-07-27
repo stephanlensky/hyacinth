@@ -46,6 +46,8 @@ docker-compose up service
 
 If everything worked correctly, the bot's status in Discord will change to online and it will start accepting commands.
 
+### Detached mode
+
 After verifying that everything is working, exit with `Ctrl+c` and restart in detached mode so that the bot will continue to run even after closing the terminal window.
 
 ```
