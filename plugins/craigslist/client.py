@@ -78,7 +78,7 @@ async def _search(
                     f.write(detail_content)
                 raise
 
-            _enrich_listing(listing)
+            await _enrich_listing(listing)
             yield listing
 
         if not has_next_page:
@@ -87,7 +87,7 @@ async def _search(
         page += 1
 
 
-def _enrich_listing(listing: CraigslistListing) -> None:
+async def _enrich_listing(listing: CraigslistListing) -> None:
     if not listing.latitude or not listing.longitude:
         listing.latitude, listing.longitude = get_geotag_from_url(listing.url)
 
@@ -96,7 +96,7 @@ def _enrich_listing(listing: CraigslistListing) -> None:
     listing.state = location.state
 
     if listing.thumbnail_url and settings.enable_s3_thumbnail_mirroring:
-        listing.thumbnail_url = mirror_image(listing.thumbnail_url)
+        listing.thumbnail_url = await mirror_image(listing.thumbnail_url)
 
 
 def _parse_search_results(content: str) -> tuple[bool, list[str]]:
