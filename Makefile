@@ -5,6 +5,12 @@ CRAIGSLIST_SAMPLE_SEARCH_URL=https://boston.craigslist.org/search/sss
 CRAIGSLIST_SEARCH_RESULT_SAMPLE_FILENAME=craigslist-search_results-sample.html
 CRAIGSLIST_RESULT_DETAILS_SAMPLE_FILENAME=craigslist-result-details-sample.html
 
+# plugin data files
+CRAIGSLIST_AREAS_URL=https://reference.craigslist.org/Areas
+CRAIGSLIST_AREAS_FILE=plugins/craigslist/craigslist_areas.json
+MARKETPLACE_CATEGORIES_URL=https://www.facebook.com/marketplace/categories
+MARKETPLACE_CATEGORIES_FILE=plugins/marketplace/categories.html
+
 all:
 	@echo "Error: please specify a target"
 
@@ -25,8 +31,15 @@ run:
 
 get-craigslist-areas:
 	@echo "Downloading craigslist areas"
-	curl -s -o plugins/craigslist/craigslist_areas.json --compressed \
-		"https://reference.craigslist.org/Areas"
+	curl -s -o ${CRAIGSLIST_AREAS_FILE} --compressed \
+		"${CRAIGSLIST_AREAS_URL}}"
+
+get-marketplace-categories:
+	@echo "Downloading marketplace categories"
+	curl -s -o ${MARKETPLACE_CATEGORIES_FILE} \
+		-X POST "${BROWSERLESS_URL}/content" \
+		-H 'Content-Type: application/json' \
+		-d '{"url": "${MARKETPLACE_CATEGORIES_URL}"}'
 
 get-craigslist-page-sample:
 	@echo "Downloading craigslist search results sample"
