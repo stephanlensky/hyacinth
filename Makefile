@@ -8,7 +8,7 @@ CRAIGSLIST_RESULT_DETAILS_SAMPLE_FILENAME=craigslist-result-details-sample.html
 all:
 	@echo "Error: please specify a target"
 
-install: get-craigslist-areas
+install:
 	@poetry install --no-dev
 
 install-dev: install

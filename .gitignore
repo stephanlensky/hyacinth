@@ -1,6 +1,3 @@
-# plugin data files
-plugins/craigslist/craigslist_areas.json
-
 # opening sample HTML files in chrome results in a directory being created with local files
 tests/resources/*_files
 
