@@ -26,9 +26,9 @@ RUN pip install poetry
 COPY . .
 
 FROM shared-setup as dev
-RUN poetry install
+RUN make install
 
 FROM shared-setup as prod
-RUN poetry install --no-dev
+RUN make install-dev
 
 CMD ["make", "run"]

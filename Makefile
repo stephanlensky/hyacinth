@@ -8,7 +8,10 @@ CRAIGSLIST_RESULT_DETAILS_SAMPLE_FILENAME=craigslist-result-details-sample.html
 all:
 	@echo "Error: please specify a target"
 
-install:
+install: get-craigslist-areas
+	@poetry install --no-dev
+
+install-dev: install
 	@poetry install
 
 test:
@@ -19,6 +22,11 @@ test:
 
 run:
 	@poetry run hyacinth
+
+get-craigslist-areas:
+	@echo "Downloading craigslist areas"
+	curl -s -o plugins/craigslist/craigslist_areas.json --compressed \
+		"https://reference.craigslist.org/Areas"
 
 get-craigslist-page-sample:
 	@echo "Downloading craigslist search results sample"

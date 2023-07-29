@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -31,9 +30,6 @@ class Settings(BaseSettings):
     # google geocoding credentials
     google_geocoding_api_key: str
 
-    # craigslist data files
-    craigslist_areas_reference_json_path: Path = Path("craigslist_areas.json")
-
     # polling intervals for different sources
     craigslist_poll_interval_seconds: int = 600
 
@@ -57,7 +53,7 @@ class Settings(BaseSettings):
     s3_bucket: str | None
 
     # sources are scraped using browserless, a headless browser, to avoid bot detection
-    browserless_url: str = "http://browserless:3000"
+    browserless_url: str
 
     # Development setings
     disable_search_polling: bool = False
