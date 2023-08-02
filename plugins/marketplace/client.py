@@ -67,6 +67,7 @@ async def _search(
                 listing = _parse_result_details(url, result_content)
                 _logger.debug(f"Got listing at {listing.creation_time}")
                 await _enrich_listing(listing)
+                yield listing
 
             _logger.debug("Scrolling down to load more results")
             previous_height = await page.evaluate("""document.body.scrollHeight""")
