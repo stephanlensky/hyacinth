@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     # list of plugin paths to load on start-up
     plugins: list[str] = [
         "plugins.craigslist.plugin:CraigslistPlugin",
+        "plugins.marketplace.plugin:MarketplacePlugin",
     ]
 
     # db credentials
@@ -56,7 +57,7 @@ class Settings(BaseSettings):
     browserless_url: str
 
     # Development setings
-    disable_search_polling: bool = False
+    disable_search_polling: bool = True
 
 
 def get_settings() -> Settings:

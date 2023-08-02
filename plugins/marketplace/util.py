@@ -70,3 +70,7 @@ def get_categories() -> list[MarketplaceCategory]:
         parse_category(category)
 
     return categories
+
+
+def has_category(category: str) -> bool:
+    return any(c.id == category or c.seo_url == category for c in get_categories())

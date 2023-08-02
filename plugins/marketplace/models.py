@@ -5,6 +5,15 @@ from hyacinth.models import BaseListing, BaseSearchParams
 
 class MarketplaceListing(BaseListing):
     title: str
+    url: str
+    body: str
+    image_urls: list[str]
+    thumbnail_url: str | None = None
+    price: float
+    city: str | None = None
+    state: str | None = None
+    latitude: float
+    longitude: float
 
 
 class MarketplaceCategory(BaseModel):
@@ -16,4 +25,4 @@ class MarketplaceCategory(BaseModel):
 
 class MarketplaceSearchParams(BaseSearchParams):
     location: str  # URL part - can be id or vanity url
-    category: str | None  # URL part - can be id or seo url
+    category: str  # URL part - can be id or seo url
