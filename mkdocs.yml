@@ -19,6 +19,7 @@ nav:
       - "Configuration": "usage-guide/configuration.md"
       - "Plugins":
           - "Craigslist": "usage-guide/plugins/craigslist.md"
+          - "Facebook Marketplace": "usage-guide/plugins/marketplace.md"
 
 markdown_extensions:
   - pymdownx.highlight:

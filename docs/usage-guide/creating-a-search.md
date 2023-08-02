@@ -8,7 +8,8 @@ To do this, navigate to the channel you would like to receive notifications in a
 
 : Plugins power Hyacinth's search capabilities, acting as sources for new listings. The following plugins are currently available:
 
-    - `craigslist`
+    - [`craigslist`](plugins/craigslist.md)
+    - [`marketplace`](plugins/marketplace.md)
 
 `name`
 
