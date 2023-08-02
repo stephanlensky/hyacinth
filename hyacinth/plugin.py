@@ -3,17 +3,21 @@ from __future__ import annotations
 import importlib
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Generic, Type, TypeVar, get_args
+from typing import TYPE_CHECKING, Awaitable, Callable, Generic, Type, TypeVar, get_args
 
-from hyacinth.discord.thread_interaction import Question
+import discord
+
 from hyacinth.exceptions import MissingPluginError
-from hyacinth.models import DiscordMessage, Listing, SearchParams
+from hyacinth.models import BaseListing, BaseSearchParams, DiscordMessage
 
-SearchParamsType = TypeVar("SearchParamsType", bound=SearchParams)
-ListingType = TypeVar("ListingType", bound=Listing)
+if TYPE_CHECKING:
+    from hyacinth.notifier import ChannelNotifier
 
-__plugins: list[Plugin] = []
-__plugin_path_dict: dict[str, Plugin] = {}
+SearchParamsType = TypeVar("SearchParamsType", bound=BaseSearchParams)
+ListingType = TypeVar("ListingType", bound=BaseListing)
+
+_plugins: list[Plugin] = []
+_plugin_path_dict: dict[str, Plugin] = {}
 
 
 class Plugin(ABC, Generic[SearchParamsType, ListingType]):
@@ -31,11 +35,11 @@ class Plugin(ABC, Generic[SearchParamsType, ListingType]):
         return f"{self.__class__.__module__}:{self.__class__.__name__}"
 
     @property
-    def search_param_cls(self) -> Type[SearchParams]:
+    def search_param_cls(self) -> Type[BaseSearchParams]:
         return self.__search_params_type
 
     @property
-    def listing_cls(self) -> Type[Listing]:
+    def listing_cls(self) -> Type[BaseListing]:
         return self.__listing_type
 
     @property
@@ -61,20 +65,25 @@ class Plugin(ABC, Generic[SearchParamsType, ListingType]):
         """Recommended polling interval in seconds"""
 
     @abstractmethod
-    def get_listings(
+    async def get_listings(
         self, search_params: SearchParamsType, after_time: datetime, limit: int | None = None
     ) -> list[ListingType]:
         pass
 
     @abstractmethod
-    def format_listing(self, listing: ListingType) -> DiscordMessage:
+    def format_listing(self, notifier: ChannelNotifier, listing: ListingType) -> DiscordMessage:
         pass
 
     @abstractmethod
-    def get_setup_questions(self) -> list[Question]:
+    def get_setup_modal(
+        self,
+        callback: Callable[[discord.Interaction, SearchParamsType], Awaitable[None]],
+        # plugins should prefill modal if this is set
+        existing_search_params: SearchParamsType | None = None,
+    ) -> discord.ui.Modal:
         pass
 
-    def __get_params_and_listing_type(self) -> tuple[Type[SearchParams], Type[Listing]]:
+    def __get_params_and_listing_type(self) -> tuple[Type[BaseSearchParams], Type[BaseListing]]:
         search_params_cls, listing_cls = get_args(
             self.__class__.__orig_bases__[0]  # type: ignore # pylint: disable=no-member
         )
@@ -104,22 +113,22 @@ def register_plugin(plugin_cls: str | Type[Plugin]) -> Plugin:
     if isinstance(plugin_cls, str):
         plugin_cls = _get_plugin_from_path(plugin_cls)
 
-    if any(type(plugin) is plugin_cls for plugin in __plugins):
+    if any(type(plugin) is plugin_cls for plugin in _plugins):
         raise ValueError(f"plugin {plugin_cls} already registered")
 
     plugin = plugin_cls()
-    __plugins.append(plugin)
-    __plugin_path_dict[plugin.path] = plugin
+    _plugins.append(plugin)
+    _plugin_path_dict[plugin.path] = plugin
 
     return plugin
 
 
 def get_plugins() -> list[Plugin]:
-    return __plugins
+    return _plugins
 
 
 def get_plugin(plugin_path: str) -> Plugin:
     try:
-        return __plugin_path_dict[plugin_path]
+        return _plugin_path_dict[plugin_path]
     except KeyError as e:
         raise MissingPluginError(plugin_path) from e

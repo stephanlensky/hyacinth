@@ -1,54 +1,34 @@
-import configparser
 import json
 import logging
+import os
 import re
 from functools import cache
 from pathlib import Path
 
-import requests
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 
-from hyacinth.settings import get_settings
-from plugins.craigslist.models import CraigslistArea, CraigslistSite
+from plugins.craigslist.models import CraigslistSite
 
-settings = get_settings()
 _logger = logging.getLogger(__name__)
+AREAS_REFERENCE_JSON_PATH = Path(os.path.realpath(__file__)).parent / "craigslist_areas.json"
 
 
 @cache
 def get_areas_reference(
-    areas_json_path: Path = settings.craigslist_areas_reference_json_path,
+    areas_json_path: Path = AREAS_REFERENCE_JSON_PATH,
 ) -> dict[str, CraigslistSite]:
-    if areas_json_path.exists():
-        _logger.info(f"Reading Craigslist Areas reference from {areas_json_path}")
-        with areas_json_path.open(encoding="utf-8") as areas_json_file:
-            areas_json = json.load(areas_json_file)
-    else:
-        _logger.info("Fetching Craigslist Areas reference from reference.craigslist.org")
-        r = requests.get("https://reference.craigslist.org/Areas")
-        areas_json = r.json()
+    if not areas_json_path.exists():
+        raise FileNotFoundError(areas_json_path)
 
-    sites = parse_obj_as(list[CraigslistSite], areas_json)
+    _logger.info(f"Reading Craigslist Areas reference from {areas_json_path}")
+    with areas_json_path.open(encoding="utf-8") as areas_json_file:
+        areas_json = json.load(areas_json_file)
+
+    sites = TypeAdapter(list[CraigslistSite]).validate_python(areas_json)
     areas_reference = {s.hostname: s for s in sites}
     _logger.info("Loaded Craigslist Areas reference")
 
     return areas_reference
-
-
-@cache
-def get_areas(config_path: Path = settings.craigslist_areas_ini_path) -> dict[str, CraigslistArea]:
-    cl_config = configparser.ConfigParser()
-    cl_config.read(config_path)
-    areas = {}
-    for area in cl_config:
-        if area == "DEFAULT":
-            continue
-        areas[area] = CraigslistArea(
-            site=cl_config[area]["site"],
-            nearby_areas=cl_config[area]["nearbyAreas"].split(","),
-        )
-
-    return areas
 
 
 def get_geotag_from_url(url: str) -> tuple[float, float]:

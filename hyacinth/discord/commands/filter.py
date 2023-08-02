@@ -1,111 +1,141 @@
 from __future__ import annotations
 
-import ast
 import logging
-import re
 from typing import TYPE_CHECKING
 
-from discord import Message
+import discord
 
-from hyacinth.filters import NumericFieldFilter, Rule, StringFieldFilter, make_filter
-from hyacinth.models import Listing
-from hyacinth.notifier import ListingNotifier
-from hyacinth.util.boolean_rule_algebra import parse_rule
+from hyacinth.discord.commands.shared import get_notifier
+from hyacinth.discord.views.confirm_delete import ConfirmDelete
+from hyacinth.enums import RuleType
+from hyacinth.filters import parse_numeric_rule_expr
+from hyacinth.notifier import ChannelNotifier
 
 if TYPE_CHECKING:
-    from hyacinth.discord.discord_bot import DiscordNotifierBot
-
+    from hyacinth.discord.discord_bot import DiscordBot
 
 _logger = logging.getLogger(__name__)
 
-INCLUDE_COMMAND = r"(include|add) (?P<rule>.+)"
-EXCLUDE_COMMAND = r"(exclude|not) (?P<disallowed>.+)"
-PREREMOVE_COMMAND = r"(preremove) (?P<preremove>.+)"
 
+def validate_filter_expr(notifier: ChannelNotifier, field: str, expr: str) -> None:
+    plugins = notifier.get_active_plugins()
+    targeted_fields = [
+        plugin.listing_cls.__fields__[field]
+        for plugin in plugins
+        if field in plugin.listing_cls.__fields__
+    ]
 
-async def filter_(
-    bot: DiscordNotifierBot,
-    message: Message,
-    notifier: ListingNotifier,
-    field: str,
-    filter_command: str,
-) -> None:
-    _logger.debug(f"Using field {field} for command {filter_command}")
-    if field not in notifier.config.filters:
-        notifier.config.filters[field] = make_filter(Listing, field)
-    field_filter = notifier.config.filters[field]
+    # check if the field is valid for any active plugin
+    if not targeted_fields:
+        raise ValueError(f"Field {field} is not a valid field for any active plugin.")
 
-    if isinstance(field_filter, StringFieldFilter):
-        await _handle_string_filter_command(bot, message, field_filter, filter_command)
-    elif isinstance(field_filter, NumericFieldFilter):
-        await _handle_numeric_filter_command(bot, message, field, field_filter, filter_command)
-    else:
-        raise NotImplementedError("filter type not implemented")
-
-
-def is_valid_string_filter_command(filter_command: str) -> bool:
-    return any(
-        map(
-            lambda p: re.match(p, filter_command),
-            (INCLUDE_COMMAND, EXCLUDE_COMMAND, PREREMOVE_COMMAND),
-        )
+    # if the field is numerical, check if the expression is a valid numerical rule
+    targets_numerical_field = any(
+        targeted_field.type_ in (int, float) for targeted_field in targeted_fields
     )
+    if targets_numerical_field:
+        parse_numeric_rule_expr(expr)  # raises ValueError if invalid
+
+    # otherwise is valid (all string expressions are valid)
+    return None
 
 
-async def _handle_string_filter_command(
-    bot: DiscordNotifierBot, message: Message, field_filter: StringFieldFilter, filter_command: str
-) -> None:
-    if command := re.match(INCLUDE_COMMAND, filter_command):
-        rule = command.group("rule").lower()
-        expression = parse_rule(rule)
-        field_filter.rules.append(Rule(rule_str=rule))
-        await message.channel.send(
-            f"{bot.affirm()} {message.author.mention}, I've added the following"
-            f" rule:\n```{repr(expression)}```"
-        )
-    elif command := re.match(EXCLUDE_COMMAND, filter_command):
-        disallowed = command.group("disallowed").lower()
-        field_filter.disallowed_words.append(disallowed)
-        await message.channel.send(
-            f"{bot.affirm()} {message.author.mention}, I won't notify you about any listings that"
-            f" include the following word:\n```{disallowed}```"
-        )
-    elif command := re.match(PREREMOVE_COMMAND, filter_command):
-        preremove = command.group("preremove").lower()
-        field_filter.preremoval_rules.append(preremove)
-        await message.channel.send(
-            f"{bot.affirm()} {message.author.mention}, I've added the following"
-            f" preremoval rule:\n```{preremove}```"
-        )
-
-
-async def _handle_numeric_filter_command(
-    bot: DiscordNotifierBot,
-    message: Message,
+async def create_filter(
+    bot: DiscordBot,
+    interaction: discord.Interaction,
     field: str,
-    field_filter: NumericFieldFilter,
-    filter_command: str,
+    rule_type: RuleType,
+    rule_expr: str,
 ) -> None:
-    command = re.match(r"(?P<operator><|<=|>|>=)\s*(?P<operand>\d+(\.\d+)?)", filter_command)
-    if command is None:
-        await message.channel.send(f"Sorry {message.author.mention}, I didn't understand that.")
+    notifier = await get_notifier(bot, interaction)
+    if not notifier:
         return
 
-    operator_str: str = command.group("operator")
-    operand_str: str = command.group("operand")
+    try:
+        validate_filter_expr(notifier, field, rule_expr)
+    except ValueError as e:
+        await interaction.response.send_message(
+            (
+                f"Sorry {interaction.user.mention}, the filter rule you provided is not valid for"
+                f' field "{field}": ```{e}```'
+            ),
+            ephemeral=True,
+        )
+        return
 
-    operand = ast.literal_eval(operand_str)
-    if not isinstance(operand, (float, int)):
-        await message.channel.send(f"Sorry {message.author.mention}, I didn't understand that.")
-
-    if ">" in operator_str:
-        field_filter.min = operand
-        field_filter.min_inclusive = "=" in operator_str
-    elif "<" in operator_str:
-        field_filter.max = operand
-        field_filter.max_inclusive = "=" in operator_str
-
-    await message.channel.send(
-        f"{bot.affirm()} {message.author.mention}, I'll only notify you of listings where"
-        f" `{field} {operator_str} {operand}`."
+    notifier.add_filter(field, rule_type, rule_expr)
+    await interaction.response.send_message(
+        (
+            f"{bot.affirm()} {interaction.user.mention}, I've added a new filter rule for field"
+            f' "{field}".'
+        ),
+        ephemeral=True,
     )
+
+
+async def edit_filter(
+    bot: DiscordBot, interaction: discord.Interaction, filter_idx: int, new_rule: str
+) -> None:
+    notifier = await get_notifier(bot, interaction)
+    if not notifier:
+        return
+    filter_ = notifier.config.filters[filter_idx]
+
+    try:
+        validate_filter_expr(notifier, filter_.field, new_rule)
+    except ValueError as e:
+        await interaction.response.send_message(
+            (
+                f"Sorry {interaction.user.mention}, the filter rule you provided is not valid for"
+                f' field "{filter_.field}": ```{e}```'
+            ),
+            ephemeral=True,
+        )
+        return
+
+    notifier.update_filter(filter_, new_rule)
+    await interaction.response.send_message(
+        (
+            f"{bot.affirm()} {interaction.user.mention}, I've updated your filter rule for field"
+            f' "{filter_.field}".'
+        ),
+        ephemeral=True,
+    )
+
+
+async def delete_filter(bot: DiscordBot, interaction: discord.Interaction, filter_idx: int) -> None:
+    notifier = await get_notifier(bot, interaction)
+    if not notifier:
+        return
+    filter_ = notifier.config.filters[filter_idx]
+    formatted_filter = (
+        f"{str(filter_.rule_type.value).upper()} {filter_.field}: {filter_.rule_expr}"
+    )
+
+    # send confirmation dialog before deleting
+    confirm = ConfirmDelete()
+    confirmation_message = await interaction.channel.send(  # type: ignore
+        (
+            "Are you sure you want to continue? This will permanently delete your filter rule"
+            f' "{formatted_filter}"'
+        ),
+        view=confirm,
+    )
+    await interaction.response.defer(ephemeral=True)
+    await confirm.wait()
+    await confirmation_message.delete()
+
+    if confirm.value:
+        notifier.remove_filter(filter_)
+        await interaction.followup.send(
+            content=(
+                f"{bot.affirm()} {interaction.user.mention}, I deleted your filter"
+                f" {formatted_filter}."
+            ),
+            ephemeral=True,
+        )
+    else:
+        await interaction.followup.send(
+            "Operation cancelled.",
+            ephemeral=True,
+        )

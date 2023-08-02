@@ -1,9 +1,8 @@
-# Hyacinth  🦜
+# Hyacinth 🦜
 
-[![Documentation](https://img.shields.io/github/workflow/status/stephanlensky/hyacinth/docs?label=docs)](https://slensky.com/hyacinth)
+[![Documentation](https://img.shields.io/github/actions/workflow/status/stephanlensky/hyacinth/docs.yml?branch=main)](https://slensky.com/hyacinth)
 [![Checked with mypy](https://img.shields.io/badge/mypy-checked-blue.svg)](http://mypy-lang.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-
 
 **Documentation:** https://slensky.com/hyacinth
 

@@ -2,8 +2,6 @@ version: "3.7"
 
 services:
   service: &service
-    env_file:
-      - ".env"
     build:
       dockerfile: ./docker/service.dockerfile
       context: .
@@ -15,10 +13,10 @@ services:
       - ./:/app
     links:
       - db
-      - redis
+      - browserless
     depends_on:
       - db
-      - redis
+      - browserless
 
   db:
     image: postgres
@@ -28,14 +26,13 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: "unless-stopped"
 
-  redis:
-    image: "redis:7.0.2"
-    env_file:
-      - ".env"
-    restart: "unless-stopped"
-    stop_grace_period: "2s"
-    volumes:
-      - redis:/data
+  browserless:
+    image: browserless/chrome
+    environment:
+      - MAX_CONCURRENT_SESSIONS=10
+      - CONNECTION_TIMEOUT=3600000  # 60 minute timeout
+    ports:
+      - "3000:3000"
 
   devbox: &devbox
     <<: *service
@@ -51,13 +48,7 @@ services:
 
   test:
     <<: *devbox
-    command: ["/bin/sh", "docker/scripts/test-docker-entrypoint.sh"]
-
-  migrations:
-    <<: *service
-    depends_on:
-      - db
-    command: ["/bin/sh", "docker/scripts/migrations-docker-entrypoint.sh"]
+    command: ["make", "test"]
 
   pgweb:
     image: sosedoff/pgweb
@@ -74,5 +65,4 @@ services:
       - db
 
 volumes:
-  redis:
   pgdata:

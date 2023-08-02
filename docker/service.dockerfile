@@ -1,6 +1,6 @@
 ARG app_env
 
-FROM python:3.10.4-bullseye as base
+FROM python:3.11.2-bullseye as base
 
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
@@ -26,9 +26,9 @@ RUN pip install poetry
 COPY . .
 
 FROM shared-setup as dev
-RUN poetry install
+RUN make install
 
 FROM shared-setup as prod
-RUN poetry install --no-dev
+RUN make install-dev
 
-CMD ["/bin/sh", "./docker/scripts/bot-docker-entrypoint.sh"]
+CMD ["make", "run"]
