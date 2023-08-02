@@ -65,7 +65,6 @@ async def _search(
             for url in result_urls:
                 result_content = await get_page_content(url)
                 listing = _parse_result_details(url, result_content)
-                _logger.debug(f"Got listing at {listing.creation_time}")
                 await _enrich_listing(listing)
                 yield listing
 
