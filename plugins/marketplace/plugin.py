@@ -19,8 +19,6 @@ from plugins.marketplace.setup_modal import MarketplaceSetupModal
 settings = get_settings()
 _logger = logging.getLogger(__name__)
 
-_logger.info("asdf")
-
 
 class MarketplacePlugin(Plugin[MarketplaceSearchParams, MarketplaceListing]):
     @property

@@ -51,16 +51,29 @@ async def _search(
             """document.querySelector("div[aria-label='Collection of Marketplace items']") !== null""",
         )
         _logger.debug("Marketplace search results rendered")
-        search_content = await page.content()
 
-        result_urls = _parse_search_results(search_content)
-        for url in result_urls:
-            result_content = await get_page_content(url)
-            listing = _parse_result_details(url, result_content)
-            await _enrich_listing(listing)
-            yield listing
+        num_results = 0
+        while True:  # loop while there are new results (scrolling down loads more results)
+            _logger.debug("Getting search results page content")
+            search_content = await page.content()
 
-        # attempt to scroll down to load more results
+            result_urls = _parse_search_results(search_content)
+            if len(result_urls) == num_results:  # no more results to load
+                break
+            num_results = len(result_urls)
+
+            for url in result_urls:
+                result_content = await get_page_content(url)
+                listing = _parse_result_details(url, result_content)
+                _logger.debug(f"Got listing at {listing.creation_time}")
+                await _enrich_listing(listing)
+
+            _logger.debug("Scrolling down to load more results")
+            previous_height = await page.evaluate("""document.body.scrollHeight""")
+            await page.evaluate("""{window.scrollBy(0, document.body.scrollHeight);}""")
+            await page.waitForFunction(
+                f"""document.body.scrollHeight > {previous_height}""", {"timeout": 5000}
+            )
 
 
 async def _enrich_listing(listing: MarketplaceListing) -> None:

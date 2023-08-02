@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     browserless_url: str
 
     # Development setings
-    disable_search_polling: bool = True
+    disable_search_polling: bool = False
 
 
 def get_settings() -> Settings:
