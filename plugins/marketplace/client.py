@@ -57,7 +57,17 @@ async def _search(
             _logger.debug("Getting search results page content")
             search_content = await page.content()
 
-            result_urls = _parse_search_results(search_content)
+            try:
+                result_urls = _parse_search_results(search_content)
+            except Exception:
+                _logger.exception(f"Error parsing search results {search_results_url}")
+                with open(
+                    f"crash-{datetime.now().strftime('%Y%m%d')}-marketplace-search-results.html",
+                    "w",
+                ) as f:
+                    f.write(search_content)
+                raise
+
             if len(result_urls) == num_results:  # no more results to load
                 break
             num_results = len(result_urls)
@@ -66,7 +76,18 @@ async def _search(
                 for url in result_urls:
                     await result_page.goto(url)
                     result_content = await result_page.content()
-                    listing = _parse_result_details(url, result_content)
+
+                    try:
+                        listing = _parse_result_details(url, result_content)
+                    except Exception:
+                        _logger.exception(f"Error parsing result details {url}")
+                        with open(
+                            f"crash-{datetime.now().strftime('%Y%m%d')}-marketplace-result-details.html",
+                            "w",
+                        ) as f:
+                            f.write(search_content)
+                        raise
+
                     await _enrich_listing(listing)
                     yield listing
 

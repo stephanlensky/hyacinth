@@ -58,7 +58,7 @@ async def _search(
         except Exception:
             _logger.exception(f"Error parsing search results {search_results_url}")
             with open(
-                f"crash-{datetime.now().strftime('%Y%m%d%H%M%S')}-craigslist-search-results.html",
+                f"crash-{datetime.now().strftime('%Y%m%d')}-craigslist-search-results.html",
                 "w",
             ) as f:
                 f.write(search_results_content)
@@ -72,7 +72,7 @@ async def _search(
             except Exception:
                 _logger.exception(f"Error parsing listing {result_url}")
                 with open(
-                    f"crash-{datetime.now().strftime('%Y%m%d%H%M%S')}-craigslist-result-details.html",
+                    f"crash-{datetime.now().strftime('%Y%m%d')}-craigslist-result-details.html",
                     "w",
                 ) as f:
                     f.write(detail_content)
