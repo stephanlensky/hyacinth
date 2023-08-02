@@ -18,9 +18,9 @@ async def get_page_content(url: str) -> str:
     _logger.debug(f"Getting page content for {url}")
     async with httpx.AsyncClient() as client:
         r = await client.post(
-            f"{settings.browserless_url}/content?stealth",
+            f"{settings.browserless_url}/content?stealth&blockAds=true",
             json={"url": url},
-            timeout=15.0,
+            timeout=30.0,
         )
         r.raise_for_status()
 
@@ -29,9 +29,20 @@ async def get_page_content(url: str) -> str:
 
 @asynccontextmanager
 async def get_browser_page() -> AsyncIterator[pyppeteer.page.Page]:
-    browser = await pyppeteer.launcher.connect(browserWSEndpoint="ws://browserless:3000")
+    browser = await pyppeteer.launcher.connect(
+        browserWSEndpoint="ws://browserless:3000?stealth&blockAds=true"
+    )
     page = await browser.newPage()
     await page.setViewport({"width": 1920, "height": 1080})
+
+    old_goto = page.goto
+
+    async def goto_with_log(url: str) -> None:
+        _logger.debug(f"Loading page {url}")
+        await old_goto(url)
+
+    page.goto = goto_with_log
+
     try:
         yield page
     finally:

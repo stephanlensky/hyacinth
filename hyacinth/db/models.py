@@ -95,6 +95,12 @@ class SearchSpec(Base):
 
         return plugin.search_param_cls.parse_raw(self.search_params_json)
 
+    def __str__(self) -> str:
+        return (
+            f"SearchSpec(id={self.id}, plugin_path={self.plugin_path},"
+            f" search_params={self.search_params})"
+        )
+
 
 class NotifierSearch(Base):
     """

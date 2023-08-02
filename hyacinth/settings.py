@@ -33,6 +33,7 @@ class Settings(BaseSettings):
 
     # polling intervals for different sources
     craigslist_poll_interval_seconds: int = 600
+    marketplace_poll_interval_seconds: int = 600
 
     discord_token: str
 
@@ -40,7 +41,7 @@ class Settings(BaseSettings):
     notifier_backdate_time_hours: int = 6
 
     # how often to check the database for new listings to notify each channel about
-    notification_frequency_seconds: int = 15
+    notification_frequency_seconds: int = 60
 
     # for some sources, thumbnails may be mirrored to s3 before display
     # this is to account for some websites blocking discord from loading the image preview in the

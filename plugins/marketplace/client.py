@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 
 from hyacinth.settings import get_settings
 from hyacinth.util.geo import reverse_geotag
-from hyacinth.util.scraping import get_browser_page, get_page_content
+from hyacinth.util.scraping import get_browser_page
 from plugins.marketplace.models import MarketplaceListing, MarketplaceSearchParams
 
 settings = get_settings()
@@ -62,11 +62,13 @@ async def _search(
                 break
             num_results = len(result_urls)
 
-            for url in result_urls:
-                result_content = await get_page_content(url)
-                listing = _parse_result_details(url, result_content)
-                await _enrich_listing(listing)
-                yield listing
+            async with get_browser_page() as result_page:
+                for url in result_urls:
+                    await result_page.goto(url)
+                    result_content = await result_page.content()
+                    listing = _parse_result_details(url, result_content)
+                    await _enrich_listing(listing)
+                    yield listing
 
             _logger.debug("Scrolling down to load more results")
             previous_height = await page.evaluate("""document.body.scrollHeight""")

@@ -30,7 +30,7 @@ class MarketplacePlugin(Plugin[MarketplaceSearchParams, MarketplaceListing]):
         return "marketplace"
 
     def polling_interval(self, search_params: MarketplaceSearchParams) -> int:
-        return 60
+        return settings.marketplace_poll_interval_seconds
 
     async def get_listings(
         self, search_params: MarketplaceSearchParams, after_time: datetime, limit: int | None = None
