@@ -20,6 +20,8 @@ _logger = logging.getLogger(__name__)
 CRAIGSLIST_DATE_FORMAT = "%Y-%m-%d %H:%M"
 CRAIGSLIST_SEARCH_URL = "https://{site}.craigslist.org/search/{category}#search=1~gallery~{page}~0"
 
+METRIC_CRAIGSLIST_PARSE_ERROR_COUNT = "craigslist_parse_error_count"
+
 
 async def get_listings(
     search_params: CraigslistSearchParams, after_time: datetime, limit: int | None = None

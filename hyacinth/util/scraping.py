@@ -1,10 +1,12 @@
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
+from urllib.parse import urlparse
 
 import httpx
 import pyppeteer
 
+from hyacinth.metrics import METRIC_SCRAPE_COUNT, write_metric
 from hyacinth.settings import get_settings
 
 settings = get_settings()
@@ -22,6 +24,8 @@ async def get_page_content(url: str) -> str:
             json={"url": url},
             timeout=30.0,
         )
+        domain = urlparse(url).netloc
+        write_metric(METRIC_SCRAPE_COUNT, 1, labels={"domain": domain})
         r.raise_for_status()
 
     return r.text
@@ -39,6 +43,8 @@ async def get_browser_page() -> AsyncIterator[pyppeteer.page.Page]:
 
     async def goto_with_log(url: str) -> None:
         _logger.debug(f"Loading page {url}")
+        domain = urlparse(url).netloc
+        write_metric(METRIC_SCRAPE_COUNT, 1, labels={"domain": domain})
         await old_goto(url)
 
     page.goto = goto_with_log

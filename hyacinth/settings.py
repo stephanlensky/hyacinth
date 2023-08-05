@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     log_format: str = "%(asctime)s [%(process)d] [%(levelname)s] %(name)-16s %(message)s"
     log_date_format: str = "%Y-%m-%d %H:%M:%S"
 
+    # observability config
+    metrics_enabled: bool = False
+    victoria_metrics_host: str | None = None
+
     # list of plugin paths to load on start-up
     plugins: list[str] = [
         "plugins.craigslist.plugin:CraigslistPlugin",

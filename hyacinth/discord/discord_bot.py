@@ -22,6 +22,7 @@ from hyacinth.discord.commands.pause import pause as pause_cmd
 from hyacinth.discord.commands.search import create_search, delete_search, edit_search
 from hyacinth.discord.commands.show import show as show_cmd
 from hyacinth.enums import RuleType
+from hyacinth.metrics import start_metrics_write_task
 from hyacinth.monitor import MarketplaceMonitor
 from hyacinth.notifier import ChannelNotifier
 from hyacinth.plugin import Plugin, register_plugin
@@ -47,6 +48,7 @@ class DiscordBot:
     async def on_ready(self) -> None:
         _logger.info(f"We have logged in as {self.client.user}")
 
+        start_metrics_write_task()
         self.load_plugins()
         self.load_saved_notifiers()
         await self.register_commands()
