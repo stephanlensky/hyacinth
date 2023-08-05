@@ -18,7 +18,8 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN apt-get update && apt-get install -y build-essential
+# libgdal-dev required to build geopandas
+RUN apt-get update && apt-get install -y build-essential libgdal-dev
 RUN useradd -ms /bin/bash joyvan
 USER joyvan
 ENV PATH="/home/joyvan/.local/bin:${PATH}"
