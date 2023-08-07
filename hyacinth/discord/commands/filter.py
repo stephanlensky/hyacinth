@@ -9,7 +9,7 @@ from hyacinth.discord.commands.shared import get_notifier
 from hyacinth.discord.views.confirm_delete import ConfirmDelete
 from hyacinth.enums import RuleType
 from hyacinth.filters import parse_numeric_rule_expr
-from hyacinth.notifier import ChannelNotifier
+from hyacinth.plugin import Plugin
 
 if TYPE_CHECKING:
     from hyacinth.discord.discord_bot import DiscordBot
@@ -17,12 +17,11 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 
-def validate_filter_expr(notifier: ChannelNotifier, field: str, expr: str) -> None:
-    plugins = notifier.get_active_plugins()
+def validate_filter_expr(plugins: list[Plugin], field: str, expr: str) -> None:
     targeted_fields = [
-        plugin.listing_cls.__fields__[field]
+        plugin.listing_cls.model_fields[field]
         for plugin in plugins
-        if field in plugin.listing_cls.__fields__
+        if field in plugin.listing_cls.model_fields
     ]
 
     # check if the field is valid for any active plugin
@@ -31,7 +30,7 @@ def validate_filter_expr(notifier: ChannelNotifier, field: str, expr: str) -> No
 
     # if the field is numerical, check if the expression is a valid numerical rule
     targets_numerical_field = any(
-        targeted_field.type_ in (int, float) for targeted_field in targeted_fields
+        targeted_field.annotation in (int, float) for targeted_field in targeted_fields
     )
     if targets_numerical_field:
         parse_numeric_rule_expr(expr)  # raises ValueError if invalid
@@ -52,7 +51,7 @@ async def create_filter(
         return
 
     try:
-        validate_filter_expr(notifier, field, rule_expr)
+        validate_filter_expr(notifier.get_active_plugins(), field, rule_expr)
     except ValueError as e:
         await interaction.response.send_message(
             (
