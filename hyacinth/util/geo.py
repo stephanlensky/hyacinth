@@ -24,6 +24,11 @@ GEONAMES_CITIES_PATH = Path("geography/cities1000.txt")
 
 @cache
 def get_google_geolocator() -> GoogleV3:
+    if not settings.google_geocoding_api_key:
+        raise ValueError(
+            "To use the Google geolocator, please specify a Google API key using the"
+            " GOOGLE_GEOCODING_API_KEY environment variable"
+        )
     return GoogleV3(api_key=settings.google_geocoding_api_key)
 
 

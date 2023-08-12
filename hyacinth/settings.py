@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     use_local_geocoder: bool = True
 
     # google geocoding credentials
-    google_geocoding_api_key: str
+    google_geocoding_api_key: str | None = None
 
     # polling intervals for different sources
     craigslist_poll_interval_seconds: int = 600
@@ -49,16 +49,16 @@ class Settings(BaseSettings):
     # requires s3 credentials
     enable_s3_thumbnail_mirroring: bool = False
     s3_image_mirror_expiration_days: int = 1
-    s3_url: str | None
-    s3_access_key: str | None
-    s3_secret_key: str | None
-    s3_bucket: str | None
+    s3_url: str | None = None
+    s3_access_key: str | None = None
+    s3_secret_key: str | None = None
+    s3_bucket: str | None = None
 
     # sources are scraped using browserless, a headless browser, to avoid bot detection
-    browserless_url: str
+    browserless_url: str = "http://browserless:3000"
 
     # Development setings
-    disable_search_polling: bool = False
+    disable_search_polling: bool = True
 
 
 def get_settings() -> Settings:
