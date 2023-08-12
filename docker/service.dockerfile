@@ -32,4 +32,4 @@ RUN make install
 FROM shared-setup as prod
 RUN make install-dev
 
-CMD ["make", "run"]
+CMD ["make", "run", "--always-make"]

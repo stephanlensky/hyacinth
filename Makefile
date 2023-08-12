@@ -15,9 +15,9 @@ all:
 	@echo "Error: please specify a target"
 
 install:
-	@poetry install --no-dev
+	@poetry install --only main
 
-install-dev: install
+install-dev:
 	@poetry install
 
 test:
