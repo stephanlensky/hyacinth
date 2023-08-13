@@ -17,6 +17,7 @@ __buffer_lock = Lock()
 
 
 METRIC_SCRAPE_COUNT = "hyacinth_scrape_count"
+METRIC_POLL_JOB_EXECUTION_COUNT = "hyacinth_poll_job_execution_count"
 
 
 @cache

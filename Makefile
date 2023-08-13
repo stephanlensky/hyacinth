@@ -29,6 +29,9 @@ test:
 run:
 	@poetry run hyacinth
 
+docs:
+	@poetry run mkdocs serve
+
 get-craigslist-areas:
 	@echo "Downloading craigslist areas"
 	curl -s -o ${CRAIGSLIST_AREAS_FILE} --compressed \

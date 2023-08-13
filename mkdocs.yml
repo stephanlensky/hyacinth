@@ -13,13 +13,14 @@ theme:
 nav:
   - Overview: "index.md"
   - "Getting started": "getting-started.md"
-  - "Usage guide":
-      - "Creating a search": "usage-guide/creating-a-search.md"
-      - "Adding filters": "usage-guide/adding-filters.md"
-      - "Configuration": "usage-guide/configuration.md"
+  - "Usage":
+      - "Creating a search": "usage/creating-a-search.md"
+      - "Adding filters": "usage/adding-filters.md"
+      - "Configuration": "usage/configuration.md"
+      - "Monitoring": "usage/monitoring.md"
       - "Plugins":
-          - "Craigslist": "usage-guide/plugins/craigslist.md"
-          - "Facebook Marketplace": "usage-guide/plugins/marketplace.md"
+          - "Craigslist": "usage/plugins/craigslist.md"
+          - "Facebook Marketplace": "usage/plugins/marketplace.md"
 
 markdown_extensions:
   - pymdownx.highlight:

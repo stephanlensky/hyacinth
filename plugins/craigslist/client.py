@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from bs4 import BeautifulSoup
 
+from hyacinth.exceptions import ParseError
 from hyacinth.settings import get_settings
 from hyacinth.util.geo import reverse_geotag
 from hyacinth.util.s3 import mirror_image
@@ -55,31 +56,11 @@ async def _search(
         )
         search_results_content = await get_page_content(search_results_url)
 
-        try:
-            has_next_page, parsed_search_results = _parse_search_results(search_results_content)
-        except Exception:
-            _logger.exception(f"Error parsing search results {search_results_url}")
-            with open(
-                f"crash-{datetime.now().strftime('%Y%m%d')}-craigslist-search-results.html",
-                "w",
-            ) as f:
-                f.write(search_results_content)
-            raise
+        has_next_page, parsed_search_results = _parse_search_results(search_results_content)
 
         for result_url in parsed_search_results:
             detail_content = await get_page_content(result_url)
-
-            try:
-                listing = _parse_result_details(result_url, detail_content)
-            except Exception:
-                _logger.exception(f"Error parsing listing {result_url}")
-                with open(
-                    f"crash-{datetime.now().strftime('%Y%m%d')}-craigslist-result-details.html",
-                    "w",
-                ) as f:
-                    f.write(detail_content)
-                raise
-
+            listing = _parse_result_details(result_url, detail_content)
             await _enrich_listing(listing)
             yield listing
 
@@ -105,77 +86,83 @@ def _parse_search_results(content: str) -> tuple[bool, list[str]]:
     """
     Parse Craigslist search results page and return a list of listing urls.
     """
-    soup = BeautifulSoup(content, "html.parser")
+    try:
+        soup = BeautifulSoup(content, "html.parser")
 
-    results_div = soup.find("div", class_="results")
-    if not results_div:
-        raise ValueError("Couldn't find results div!")
-    listing_links = results_div.find_all("a", class_="main", attrs={"href": True})  # type: ignore
-    listing_urls = [a.attrs["href"] for a in listing_links]
+        results_div = soup.find("div", class_="results")
+        if not results_div:
+            raise ParseError("Couldn't find results div!", content)
+        listing_links = results_div.find_all("a", class_="main", attrs={"href": True})  # type: ignore
+        listing_urls = [a.attrs["href"] for a in listing_links]
 
-    page_number = soup.find("span", class_="cl-page-number")
-    num_results = re.findall(r"\b(\d+)\b", page_number.text)  # type: ignore
-    has_next_page = num_results[1] != num_results[2]
+        page_number = soup.find("span", class_="cl-page-number")
+        num_results = re.findall(r"\b(\d+)\b", page_number.text)  # type: ignore
+        has_next_page = num_results[1] != num_results[2]
 
-    return has_next_page, listing_urls
+        return has_next_page, listing_urls
+    except Exception as e:
+        raise ParseError("Error parsing search results", content) from e
 
 
 def _parse_result_details(url: str, content: str) -> CraigslistListing:
     """
     Parse Craigslist result details page.
     """
-    soup = BeautifulSoup(content, "html.parser")
+    try:
+        soup = BeautifulSoup(content, "html.parser")
 
-    # basic info
-    title = soup.find("span", id="titletextonly").text.strip()  # type: ignore
-    postingbody = soup.find("section", id="postingbody")
-    postingbody.find("div", class_="print-information").decompose()  # type: ignore
-    body = "\n".join(postingbody.stripped_strings)  # type: ignore
+        # basic info
+        title = soup.find("span", id="titletextonly").text.strip()  # type: ignore
+        postingbody = soup.find("section", id="postingbody")
+        postingbody.find("div", class_="print-information").decompose()  # type: ignore
+        body = "\n".join(postingbody.stripped_strings)  # type: ignore
 
-    # images
-    thumbs_container = soup.find(id="thumbs")
-    gallery = soup.find(class_="gallery")
-    if thumbs_container:  # multiple images are present
-        image_urls = [
-            a.attrs["href"]
-            for a in thumbs_container.find_all("a", attrs={"href": True})  # type: ignore
-        ]
-    elif gallery:  # only a single image
-        image_urls = [gallery.find("img", attrs={"src": True}).attrs["src"]]  # type: ignore
-    else:  # no images
-        image_urls = []
+        # images
+        thumbs_container = soup.find(id="thumbs")
+        gallery = soup.find(class_="gallery")
+        if thumbs_container:  # multiple images are present
+            image_urls = [
+                a.attrs["href"]
+                for a in thumbs_container.find_all("a", attrs={"href": True})  # type: ignore
+            ]
+        elif gallery:  # only a single image
+            image_urls = [gallery.find("img", attrs={"src": True}).attrs["src"]]  # type: ignore
+        else:  # no images
+            image_urls = []
 
-    # price
-    price_span = soup.find("span", class_="price")
-    price = float(price_span.text[1:].replace(",", "").strip()) if price_span else 0  # type: ignore
+        # price
+        price_span = soup.find("span", class_="price")
+        price = float(price_span.text[1:].replace(",", "").strip()) if price_span else 0  # type: ignore
 
-    # location
-    latitude = None
-    longitude = None
-    if soup.find("div", id="map"):
-        latitude = float(soup.find("div", id="map")["data-latitude"])  # type: ignore
-        longitude = float(soup.find("div", id="map")["data-longitude"])  # type: ignore
+        # location
+        latitude = None
+        longitude = None
+        if soup.find("div", id="map"):
+            latitude = float(soup.find("div", id="map")["data-latitude"])  # type: ignore
+            longitude = float(soup.find("div", id="map")["data-longitude"])  # type: ignore
 
-    # timestamps
-    postinginfos = soup.find("div", class_="postinginfos")
-    posted = postinginfos.find(lambda tag: "posted:" in tag.text and tag.find("time") is not None)  # type: ignore
-    creation_time = datetime.fromisoformat(posted.find("time")["datetime"]).astimezone(ZoneInfo("UTC"))  # type: ignore
-    updated = postinginfos.find(lambda tag: "updated:" in tag.text and tag.find("time") is not None)  # type: ignore
-    updated_time = creation_time
-    if updated:
-        updated_time = datetime.fromisoformat(updated.find("time")["datetime"]).astimezone(ZoneInfo("UTC"))  # type: ignore
+        # timestamps
+        postinginfos = soup.find("div", class_="postinginfos")
+        posted = postinginfos.find(lambda tag: "posted:" in tag.text and tag.find("time") is not None)  # type: ignore
+        creation_time = datetime.fromisoformat(posted.find("time")["datetime"]).astimezone(ZoneInfo("UTC"))  # type: ignore
+        updated = postinginfos.find(lambda tag: "updated:" in tag.text and tag.find("time") is not None)  # type: ignore
+        updated_time = creation_time
+        if updated:
+            updated_time = datetime.fromisoformat(updated.find("time")["datetime"]).astimezone(ZoneInfo("UTC"))  # type: ignore
 
-    return CraigslistListing(
-        url=url,
-        title=title,
-        body=body,
-        image_urls=image_urls,
-        thumbnail_url=image_urls[0] if image_urls else None,
-        price=price,
-        city=None,
-        state=None,
-        latitude=latitude,
-        longitude=longitude,
-        creation_time=creation_time,
-        updated_time=updated_time,
-    )
+        return CraigslistListing(
+            url=url,
+            title=title,
+            body=body,
+            image_urls=image_urls,
+            thumbnail_url=image_urls[0] if image_urls else None,
+            price=price,
+            city=None,
+            state=None,
+            latitude=latitude,
+            longitude=longitude,
+            creation_time=creation_time,
+            updated_time=updated_time,
+        )
+    except Exception as e:
+        raise ParseError(f"Error parsing listing {url}", content) from e

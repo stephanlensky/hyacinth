@@ -24,6 +24,7 @@ async def get_page_content(url: str) -> str:
             json={"url": url},
             timeout=30.0,
         )
+        r.raise_for_status()
         domain = urlparse(url).netloc
         write_metric(METRIC_SCRAPE_COUNT, 1, labels={"domain": domain})
         r.raise_for_status()

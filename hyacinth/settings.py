@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     log_format: str = "%(asctime)s [%(process)d] [%(levelname)s] %(name)-16s %(message)s"
     log_date_format: str = "%Y-%m-%d %H:%M:%S"
 
+    # crash reports
+    save_crash_reports: bool = True
+    crash_report_save_folder: str = "logs"
+
     # observability config
     metrics_enabled: bool = False
     victoria_metrics_host: str | None = None
@@ -62,7 +66,7 @@ class Settings(BaseSettings):
     browserless_url: str = "http://browserless:3000"
 
     # Development setings
-    disable_search_polling: bool = True
+    disable_search_polling: bool = False
 
 
 def get_settings() -> Settings:
