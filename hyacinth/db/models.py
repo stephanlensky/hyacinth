@@ -55,7 +55,7 @@ class Listing(Base):
     def from_base_listing(cls, base_listing: BaseListing, search_spec_id: int) -> Listing:
         return cls(
             search_spec_id=search_spec_id,
-            listing_json=base_listing.json(),
+            listing_json=base_listing.model_dump_json(),
             creation_time=base_listing.creation_time,
         )
 
@@ -93,7 +93,7 @@ class SearchSpec(Base):
     def search_params(self) -> BaseSearchParams:
         plugin = self.plugin
 
-        return plugin.search_param_cls.parse_raw(self.search_params_json)
+        return plugin.search_param_cls.model_validate_json(self.search_params_json)
 
     def __str__(self) -> str:
         return (

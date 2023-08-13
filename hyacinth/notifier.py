@@ -275,6 +275,6 @@ class ChannelNotifier(ListingNotifier):
         self.channel = channel
 
     async def notify(self, plugin: Plugin, listing: Listing) -> None:
-        parsed_listing = plugin.listing_cls.parse_raw(listing.listing_json)
+        parsed_listing = plugin.listing_cls.model_validate_json(listing.listing_json)
         message = plugin.format_listing(self, parsed_listing)
-        await self.channel.send(**message.dict())
+        await self.channel.send(**message.model_dump())

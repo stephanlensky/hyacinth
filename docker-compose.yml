@@ -48,7 +48,7 @@ services:
 
   test:
     <<: *devbox
-    command: ["make", "test"]
+    command: ["just", "test"]
 
   pgweb:
     image: sosedoff/pgweb

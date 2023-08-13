@@ -14,7 +14,6 @@ SOME_SEARCH_PARAMS_JSON = {"some": "search_params_json"}
 def test_add_search_spec__spec_does_not_exist__creates_new_search_spec(
     test_db_session: sessionmaker[Session],
 ) -> None:
-
     with test_db_session() as session:
         add_search_spec(session, SOME_PLUGIN_PATH, SOME_SEARCH_PARAMS_JSON)
         session.commit()

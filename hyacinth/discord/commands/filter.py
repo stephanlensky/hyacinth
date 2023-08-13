@@ -81,7 +81,7 @@ async def edit_filter(
     filter_ = notifier.config.filters[filter_idx]
 
     try:
-        validate_filter_expr(notifier, filter_.field, new_rule)
+        validate_filter_expr(notifier.get_active_plugins(), filter_.field, new_rule)
     except ValueError as e:
         await interaction.response.send_message(
             (

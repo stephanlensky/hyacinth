@@ -1,7 +1,3 @@
-from pathlib import Path
-
-from pytest_mock import MockerFixture
-
 from plugins.craigslist import util
 from plugins.craigslist.models import CraigslistSite
 from tests.resources import get_resource_path
@@ -10,14 +6,6 @@ from tests.resources import get_resource_path
 def __validate_areas_reference(areas_reference: dict[str, CraigslistSite]) -> None:
     assert "boston" in areas_reference
     assert "worcester" in areas_reference
-
-
-def test_get_areas_reference__fetches_from_craigslist(mocker: MockerFixture) -> None:
-    util.get_areas_reference.cache_clear()
-    nonexistant_path_mock = mocker.Mock(spec=Path)
-    nonexistant_path_mock.exists.return_value = False
-    areas_reference = util.get_areas_reference(areas_json_path=nonexistant_path_mock)
-    __validate_areas_reference(areas_reference)
 
 
 def test_get_areas_reference__from_disk() -> None:

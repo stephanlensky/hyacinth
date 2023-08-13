@@ -2,7 +2,6 @@ from pydantic import create_model
 from pytest_mock import MockerFixture
 
 from hyacinth.discord.commands.filter import validate_filter_expr
-from hyacinth.filters import parse_numeric_rule_expr
 
 MODULE = "hyacinth.discord.commands.filter"
 

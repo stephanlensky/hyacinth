@@ -50,7 +50,7 @@ def get_filter_field_autocomplete(
 
         filterable_fields: set[str] = set()
         for plugin in channel_plugins:
-            filterable_fields.update(plugin.listing_cls.__fields__.keys())
+            filterable_fields.update(plugin.listing_cls.model_fields.keys())
         alphabetical_fields = sorted(filterable_fields)
 
         return [

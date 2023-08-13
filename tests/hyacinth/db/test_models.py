@@ -20,7 +20,7 @@ def test_listing_from_base_listing__some_listing_model__creates_expected_model()
     listing = Listing.from_base_listing(base_listing, 1)
 
     assert listing.search_spec_id == 1
-    assert listing.listing_json == '{"creation_time": "2021-01-01T00:00:00", "title": "test title"}'
+    assert listing.listing_json == '{"creation_time":"2021-01-01T00:00:00","title":"test title"}'
 
 
 def test_search_spec_plugin_property__some_plugin_path__loads_expected_plugin(

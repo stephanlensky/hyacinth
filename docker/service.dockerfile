@@ -22,14 +22,16 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
 RUN apt-get update && apt-get install -y build-essential libgdal-dev
 RUN useradd -ms /bin/bash joyvan
 USER joyvan
-ENV PATH="/home/joyvan/.local/bin:${PATH}"
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+ENV PATH="/home/joyvan/.local/bin:/home/joyvan/.cargo/bin:${PATH}"
+RUN cargo install just
 RUN pip install poetry
 COPY . .
 
 FROM shared-setup as dev
-RUN make install-dev
+RUN just install-dev
 
 FROM shared-setup as prod
-RUN make install
+RUN just install
 
-CMD ["make", "run", "--always-make"]
+CMD ["just", "run"]

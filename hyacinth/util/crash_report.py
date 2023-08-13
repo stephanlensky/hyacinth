@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-def save_poll_failure_report(e: Exception):
+def save_poll_failure_report(e: Exception) -> None:
     """
     Save a poll failure report to a file.
     """
