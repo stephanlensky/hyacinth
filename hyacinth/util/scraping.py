@@ -24,11 +24,15 @@ async def scrape(url: str, selectors: list[str], waitUntil: str) -> dict[str, An
             json={
                 "url": url,
                 "elements": [{"selector": s} for s in selectors],
-                "gotoOptions": {"timeout": 10_000, "waitUntil": "networkidle2"},
+                "gotoOptions": {"timeout": 10_000, "waitUntil": waitUntil},
             },
             timeout=30.0,
         )
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except Exception:
+            _logger.error(f"Failed to scrape {url}: {r.text}")
+            raise
         domain = urlparse(url).netloc
         write_metric(METRIC_SCRAPE_COUNT, 1, labels={"domain": domain})
 

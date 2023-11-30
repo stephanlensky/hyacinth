@@ -74,7 +74,7 @@ async def _get_search_results_content(site: str, category: str, page: int) -> st
     """
     search_results_url = CRAIGSLIST_SEARCH_URL.format(site=site, category=category, page=page)
     # selectors=["html"] to grab entire page
-    scrape_result = await scrape(search_results_url, selectors=["html"], waitUntil="networkidle0")
+    scrape_result = await scrape(search_results_url, selectors=["html"], waitUntil="networkidle2")
     return "<html>" + scrape_result["data"][0]["results"][0]["html"] + "</html>"
 
 
@@ -83,7 +83,7 @@ async def _get_detail_content(url: str) -> str:
     Get the content of a Craigslist listing details page.
     """
     # selectors=["html"] to grab entire page
-    scrape_result = await scrape(url, selectors=["html"], waitUntil="networkidle0")
+    scrape_result = await scrape(url, selectors=["html"], waitUntil="networkidle2")
     return "<html>" + scrape_result["data"][0]["results"][0]["html"] + "</html>"
 
 
