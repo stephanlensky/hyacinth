@@ -109,7 +109,7 @@ def _parse_search_results(content: str) -> tuple[bool, list[str]]:
         cl_results_page = soup.find("div", class_="cl-results-page")
         if not cl_results_page:
             raise ParseError("Couldn't find cl_results_page!", content)
-        listing_links = cl_results_page.find_all("a", attrs={"href": True})  # type: ignore
+        listing_links = cl_results_page.find_all("a", class_="main", attrs={"href": True})  # type: ignore
         listing_urls = [a.attrs["href"] for a in listing_links]
 
         page_number = soup.find("span", class_="cl-page-number")

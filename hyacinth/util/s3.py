@@ -58,4 +58,8 @@ async def mirror_image(url: str) -> str:
             Expires=expiration_time,
         )
 
+    _logger.debug(
+        f"Done Mirroring image {url} to s3 {settings.s3_url}/{settings.s3_bucket}/{image_key}"
+    )
+
     return f"{settings.s3_url}/{settings.s3_bucket}/{image_key}"
