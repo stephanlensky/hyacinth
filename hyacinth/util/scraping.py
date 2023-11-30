@@ -13,24 +13,6 @@ settings = get_settings()
 _logger = logging.getLogger(__name__)
 
 
-async def get_page_content(url: str, javascript_enabled: bool = False) -> str:
-    """
-    Get the content of a web page.
-    """
-    _logger.debug(f"Getting page content for {url}")
-    async with httpx.AsyncClient() as client:
-        r = await client.post(
-            f"{settings.browserless_url}/content?stealth&blockAds=true",
-            json={"url": url, "setJavaScriptEnabled": javascript_enabled},
-            timeout=30.0,
-        )
-        r.raise_for_status()
-        domain = urlparse(url).netloc
-        write_metric(METRIC_SCRAPE_COUNT, 1, labels={"domain": domain})
-
-    return r.text
-
-
 async def scrape(url: str, selectors: list[str], waitUntil: str) -> dict[str, Any]:
     """
     Scrape a webpage using the browserless /scrape API.

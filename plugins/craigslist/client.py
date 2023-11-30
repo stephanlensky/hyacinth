@@ -1,4 +1,3 @@
-import json
 import logging
 import re
 from datetime import datetime
@@ -11,7 +10,7 @@ from hyacinth.exceptions import ParseError
 from hyacinth.settings import get_settings
 from hyacinth.util.geo import reverse_geotag
 from hyacinth.util.s3 import mirror_image
-from hyacinth.util.scraping import get_page_content, scrape
+from hyacinth.util.scraping import scrape
 from plugins.craigslist.models import CraigslistListing, CraigslistSearchParams
 from plugins.craigslist.util import get_geotag_from_url
 
