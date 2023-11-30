@@ -18,13 +18,19 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
+# add makedeb prebuilt MPR repo (required for just)
+RUN wget -qO - 'https://proget.makedeb.org/debian-feeds/prebuilt-mpr.pub' | \
+    gpg --dearmor | \
+    tee /usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg 1> /dev/null
+
+RUN echo "deb [arch=all,$(dpkg --print-architecture) signed-by=/usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg] https://proget.makedeb.org prebuilt-mpr bullseye" | \
+    tee /etc/apt/sources.list.d/prebuilt-mpr.list
+
 # libgdal-dev required to build geopandas
-RUN apt-get update && apt-get install -y build-essential libgdal-dev
+RUN apt-get update && apt-get install -y just build-essential libgdal-dev
 RUN useradd -ms /bin/bash joyvan
 USER joyvan
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-ENV PATH="/home/joyvan/.local/bin:/home/joyvan/.cargo/bin:${PATH}"
-RUN cargo install just
+ENV PATH="/home/joyvan/.local/bin:${PATH}"
 RUN pip install poetry
 COPY . .
 

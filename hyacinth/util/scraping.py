@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 from urllib.parse import urlparse
 
 import httpx
@@ -13,7 +13,7 @@ settings = get_settings()
 _logger = logging.getLogger(__name__)
 
 
-async def get_page_content(url: str) -> str:
+async def get_page_content(url: str, javascript_enabled: bool = False) -> str:
     """
     Get the content of a web page.
     """
@@ -21,15 +21,36 @@ async def get_page_content(url: str) -> str:
     async with httpx.AsyncClient() as client:
         r = await client.post(
             f"{settings.browserless_url}/content?stealth&blockAds=true",
-            json={"url": url},
+            json={"url": url, "setJavaScriptEnabled": javascript_enabled},
             timeout=30.0,
         )
         r.raise_for_status()
         domain = urlparse(url).netloc
         write_metric(METRIC_SCRAPE_COUNT, 1, labels={"domain": domain})
-        r.raise_for_status()
 
     return r.text
+
+
+async def scrape(url: str, selectors: list[str], waitUntil: str) -> dict[str, Any]:
+    """
+    Scrape a webpage using the browserless /scrape API.
+    """
+    _logger.debug(f"Scraping {url}")
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            f"{settings.browserless_url}/scrape?stealth&blockAds=true",
+            json={
+                "url": url,
+                "elements": [{"selector": s} for s in selectors],
+                "gotoOptions": {"timeout": 10_000, "waitUntil": "networkidle2"},
+            },
+            timeout=30.0,
+        )
+        r.raise_for_status()
+        domain = urlparse(url).netloc
+        write_metric(METRIC_SCRAPE_COUNT, 1, labels={"domain": domain})
+
+    return r.json()
 
 
 @asynccontextmanager

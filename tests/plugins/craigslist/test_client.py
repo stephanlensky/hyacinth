@@ -68,7 +68,7 @@ def test__parse_result_details__sample_result_details_single_image__returns_one_
 async def test__search__mocked_content__returns_all_listings_on_page_and_follows_next_page(
     mocker: MockerFixture,
 ) -> None:
-    mocker.patch(f"{MODULE}.get_page_content")
+    mocker.patch(f"{MODULE}.scrape")
     mocker.patch(f"{MODULE}._enrich_listing")
     mocker.patch(
         f"{MODULE}._parse_search_results",

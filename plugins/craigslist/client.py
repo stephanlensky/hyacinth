@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from datetime import datetime
@@ -10,7 +11,7 @@ from hyacinth.exceptions import ParseError
 from hyacinth.settings import get_settings
 from hyacinth.util.geo import reverse_geotag
 from hyacinth.util.s3 import mirror_image
-from hyacinth.util.scraping import get_page_content
+from hyacinth.util.scraping import get_page_content, scrape
 from plugins.craigslist.models import CraigslistListing, CraigslistSearchParams
 from plugins.craigslist.util import get_geotag_from_url
 
@@ -51,15 +52,13 @@ async def _search(
 ) -> AsyncGenerator[CraigslistListing, None]:
     page = 0
     while True:
-        search_results_url = CRAIGSLIST_SEARCH_URL.format(
+        search_results_content = await _get_search_results_content(
             site=search_params.site, category=search_params.category, page=page
         )
-        search_results_content = await get_page_content(search_results_url)
-
         has_next_page, parsed_search_results = _parse_search_results(search_results_content)
 
         for result_url in parsed_search_results:
-            detail_content = await get_page_content(result_url)
+            detail_content = await _get_detail_content(result_url)
             listing = _parse_result_details(result_url, detail_content)
             await _enrich_listing(listing)
             yield listing
@@ -68,6 +67,25 @@ async def _search(
             break
 
         page += 1
+
+
+async def _get_search_results_content(site: str, category: str, page: int) -> str:
+    """
+    Get the content of a Craigslist search results page.
+    """
+    search_results_url = CRAIGSLIST_SEARCH_URL.format(site=site, category=category, page=page)
+    # selectors=["html"] to grab entire page
+    scrape_result = await scrape(search_results_url, selectors=["html"], waitUntil="networkidle0")
+    return "<html>" + scrape_result["data"][0]["results"][0]["html"] + "</html>"
+
+
+async def _get_detail_content(url: str) -> str:
+    """
+    Get the content of a Craigslist listing details page.
+    """
+    # selectors=["html"] to grab entire page
+    scrape_result = await scrape(url, selectors=["html"], waitUntil="networkidle0")
+    return "<html>" + scrape_result["data"][0]["results"][0]["html"] + "</html>"
 
 
 async def _enrich_listing(listing: CraigslistListing) -> None:
@@ -89,10 +107,10 @@ def _parse_search_results(content: str) -> tuple[bool, list[str]]:
     try:
         soup = BeautifulSoup(content, "html.parser")
 
-        results_div = soup.find("div", class_="results")
-        if not results_div:
-            raise ParseError("Couldn't find results div!", content)
-        listing_links = results_div.find_all("a", class_="main", attrs={"href": True})  # type: ignore
+        cl_results_page = soup.find("div", class_="cl-results-page")
+        if not cl_results_page:
+            raise ParseError("Couldn't find cl_results_page!", content)
+        listing_links = cl_results_page.find_all("a", attrs={"href": True})  # type: ignore
         listing_urls = [a.attrs["href"] for a in listing_links]
 
         page_number = soup.find("span", class_="cl-page-number")
@@ -101,6 +119,8 @@ def _parse_search_results(content: str) -> tuple[bool, list[str]]:
 
         return has_next_page, listing_urls
     except Exception as e:
+        if isinstance(e, ParseError):
+            raise
         raise ParseError("Error parsing search results", content) from e
 
 
