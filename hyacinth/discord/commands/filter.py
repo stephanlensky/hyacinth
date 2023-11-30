@@ -4,11 +4,12 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
+from boolean import ParseError
 
 from hyacinth.discord.commands.shared import get_notifier
 from hyacinth.discord.views.confirm_delete import ConfirmDelete
 from hyacinth.enums import RuleType
-from hyacinth.filters import parse_numeric_rule_expr
+from hyacinth.filters import parse_numeric_rule_expr, parse_string_rule_expr
 from hyacinth.plugin import Plugin
 
 if TYPE_CHECKING:
@@ -35,7 +36,14 @@ def validate_filter_expr(plugins: list[Plugin], field: str, expr: str) -> None:
     if targets_numerical_field:
         parse_numeric_rule_expr(expr)  # raises ValueError if invalid
 
-    # otherwise is valid (all string expressions are valid)
+    # verify string contains only tokens allowed by the boolean algebra system
+    # (alphanumeric and boolean operators/grouping symbols)
+    try:
+        parse_string_rule_expr(expr)
+    except ParseError as e:
+        raise ValueError(f"Invalid token in rule: {e.token_string}")
+
+    # otherwise is valid
     return None
 
 
@@ -54,20 +62,16 @@ async def create_filter(
         validate_filter_expr(notifier.get_active_plugins(), field, rule_expr)
     except ValueError as e:
         await interaction.response.send_message(
-            (
-                f"Sorry {interaction.user.mention}, the filter rule you provided is not valid for"
-                f' field "{field}": ```{e}```'
-            ),
+            f"Sorry {interaction.user.mention}, the filter rule you provided is not valid for"
+            f' field "{field}": ```{e}```',
             ephemeral=True,
         )
         return
 
     notifier.add_filter(field, rule_type, rule_expr)
     await interaction.response.send_message(
-        (
-            f"{bot.affirm()} {interaction.user.mention}, I've added a new filter rule for field"
-            f' "{field}".'
-        ),
+        f"{bot.affirm()} {interaction.user.mention}, I've added a new filter rule for field"
+        f' "{field}".',
         ephemeral=True,
     )
 
@@ -84,20 +88,16 @@ async def edit_filter(
         validate_filter_expr(notifier.get_active_plugins(), filter_.field, new_rule)
     except ValueError as e:
         await interaction.response.send_message(
-            (
-                f"Sorry {interaction.user.mention}, the filter rule you provided is not valid for"
-                f' field "{filter_.field}": ```{e}```'
-            ),
+            f"Sorry {interaction.user.mention}, the filter rule you provided is not valid for"
+            f' field "{filter_.field}": ```{e}```',
             ephemeral=True,
         )
         return
 
     notifier.update_filter(filter_, new_rule)
     await interaction.response.send_message(
-        (
-            f"{bot.affirm()} {interaction.user.mention}, I've updated your filter rule for field"
-            f' "{filter_.field}".'
-        ),
+        f"{bot.affirm()} {interaction.user.mention}, I've updated your filter rule for field"
+        f' "{filter_.field}".',
         ephemeral=True,
     )
 
@@ -114,10 +114,8 @@ async def delete_filter(bot: DiscordBot, interaction: discord.Interaction, filte
     # send confirmation dialog before deleting
     confirm = ConfirmDelete()
     confirmation_message = await interaction.channel.send(  # type: ignore
-        (
-            "Are you sure you want to continue? This will permanently delete your filter rule"
-            f' "{formatted_filter}"'
-        ),
+        "Are you sure you want to continue? This will permanently delete your filter rule"
+        f' "{formatted_filter}"',
         view=confirm,
     )
     await interaction.response.defer(ephemeral=True)
