@@ -6,7 +6,7 @@
       "groupName": "python non-major dependencies",
       "groupSlug": "python-minor-patch",
       "matchLanguages": ["python"],
-      "excludePackageNames": ["python"],
+      "excludeDepNames": ["python"],
       "matchPackagePatterns": ["*"],
       "matchUpdateTypes": ["minor", "patch"]
     }
