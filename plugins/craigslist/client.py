@@ -99,8 +99,10 @@ async def _get_detail_content(puppeteer_page: pyppeteer.page.Page, url: str) -> 
     """
     Get the content of a Craigslist listing details page.
     """
-    await puppeteer_page.goto(url, {"waitUntil": "domcontentloaded"})
-    _logger.debug("Getting search results page content")
+    await puppeteer_page.goto(url)
+    _logger.debug("Waiting for listing details to render")
+    await puppeteer_page.waitForSelector("section.body")
+    _logger.debug("Getting listing details page content")
     return await puppeteer_page.content()
 
 
