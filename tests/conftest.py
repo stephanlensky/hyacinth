@@ -62,9 +62,8 @@ def load_plugins() -> Generator[None, None, None]:
 
 
 @pytest.fixture()
-def mock_schedulers(mocker: MockerFixture) -> None:
+def mock_notifier_scheduler(mocker: MockerFixture) -> None:
     """
     Mocks the schedulers so that they don't run.
     """
-    mocker.patch("hyacinth.scheduler.get_async_scheduler")
-    mocker.patch("hyacinth.scheduler.get_threadpool_scheduler")
+    mocker.patch("hyacinth.notifier.get_async_scheduler")
