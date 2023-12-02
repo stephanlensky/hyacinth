@@ -1,10 +1,14 @@
 import logging
+import sys
 
+from pydantic import ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_prefix="hyacinth_", env_file_encoding="utf-8"
+    )
 
     # timezone
     tz: str
@@ -71,4 +75,15 @@ class Settings(BaseSettings):
 
 def get_settings() -> Settings:
     # missing arguments detected by mypy are sourced from .env file
-    return Settings()  # type: ignore
+    try:
+        return Settings()  # type: ignore
+    except ValidationError as e:
+        print("Could not find all required configuration settings! Please check your .env file.")
+        print(e)
+
+        print(
+            "\nNote, environment variables names have recently been changed to include the"
+            ' "HYACINTH_" prefix. If you had an existing .env file, you will need to update the'
+            ' variable names to include the "HYACINTH_" prefix.'
+        )
+        sys.exit(1)

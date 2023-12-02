@@ -32,4 +32,4 @@ during polling of your Marketplace searches. If you encounter this, you might tr
 
 - Running Hyacinth from your home network
 - Reducing the number of active Marketplace searches
-- Reducing the poll interval for Marketplace searches by setting `MARKETPLACE_POLL_INTERVAL_SECONDS` in your `.env` file (default is 10 minutes).
+- Reducing the poll interval for Marketplace searches by setting `HYACINTH_MARKETPLACE_POLL_INTERVAL_SECONDS` in your `.env` file (default is 10 minutes).

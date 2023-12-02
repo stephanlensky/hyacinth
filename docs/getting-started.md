@@ -24,14 +24,14 @@ In order to connect Hyacinth to Discord, you must first configure an application
 
   ```env
   # in the unix tz database format, ex. America/New_York
-  TZ=<your timezone>
+  HYACINTH_TZ=<your timezone>
 
   # copy it from the discord developer portal!
-  DISCORD_TOKEN=<your discord token>
+  HYACINTH_DISCORD_TOKEN=<your discord token>
 
   # any password is fine, it will be used for the bot's internal database
-  POSTGRES_USER=postgres
-  POSTGRES_PASSWORD=<a random password>
+  HYACINTH_POSTGRES_USER=postgres
+  HYACINTH_POSTGRES_PASSWORD=<a random password>
   ```
 
   Remember to replace the values inside `<>`!

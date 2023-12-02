@@ -7,8 +7,8 @@ Hyacinth includes built-in support for writing metrics to a [Victoria Metrics](h
 To enable metrics support, add the following variables to your `.env` file:
 
 ```
-METRICS_ENABLED=true
-VICTORIA_METRICS_HOST=<your victoria metrics host>
+HYACINTH_METRICS_ENABLED=true
+HYACINTH_VICTORIA_METRICS_HOST=<your victoria metrics host>
 ```
 
 The following metrics are supported:
@@ -38,10 +38,10 @@ count_over_time(hyacinth_poll_job_execution_count{success="false"}[$__interval])
 
 ## Error reporting
 
-By default, a failing search poll job will write a crash report to the `logs/` directory. This behavior can be configured with the `SAVE_CRASH_REPORTS` and `CRASH_REPORTS_SAVE_FOLDER` environment variables.
+By default, a failing search poll job will write a crash report to the `logs/` directory. This behavior can be configured with the `HYACINTH_SAVE_CRASH_REPORTS` and `HYACINTH_CRASH_REPORTS_SAVE_FOLDER` environment variables.
 
 ```sh
 # default setings
-SAVE_CRASH_REPORTS = true
-CRASH_REPORTS_SAVE_FOLDER = logs
+HYACINTH_SAVE_CRASH_REPORTS = true
+HYACINTH_CRASH_REPORTS_SAVE_FOLDER = logs
 ```

@@ -15,7 +15,7 @@ MARKETPLACE_CATEGORIES_URL := "https://www.facebook.com/marketplace/categories"
 MARKETPLACE_CATEGORIES_FILE := "plugins/marketplace/categories.html"
 
 # disable metrics for recipes which use hyacinth code directly
-export METRICS_ENABLED := "false"
+export HYACINTH_METRICS_ENABLED := "false"
 
 default:
     just --list
