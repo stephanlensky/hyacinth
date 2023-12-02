@@ -35,6 +35,7 @@ def validate_filter_expr(plugins: list[Plugin], field: str, expr: str) -> None:
     )
     if targets_numerical_field:
         parse_numeric_rule_expr(expr)  # raises ValueError if invalid
+        return
 
     # verify string contains only tokens allowed by the boolean algebra system
     # (alphanumeric and boolean operators/grouping symbols)
@@ -42,9 +43,6 @@ def validate_filter_expr(plugins: list[Plugin], field: str, expr: str) -> None:
         parse_string_rule_expr(expr)
     except ParseError as e:
         raise ValueError(f"Invalid token in rule: {e.token_string}")
-
-    # otherwise is valid
-    return None
 
 
 async def create_filter(
