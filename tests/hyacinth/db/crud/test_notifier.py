@@ -11,7 +11,7 @@ SOME_OTHER_CHANNEL_ID = 456
 
 
 def test_get_channel_notifiers__some_channels_do_not_exist__deletes_notifiers_with_stale_channels(
-    test_db_session: sessionmaker[Session], mock_schedulers: None, mocker: MockerFixture
+    test_db_session: sessionmaker[Session], mock_notifier_scheduler: None, mocker: MockerFixture
 ) -> None:
     mock_client = mocker.Mock(
         get_channel=lambda channel_id: mocker.Mock(id=SOME_CHANNEL_ID)
