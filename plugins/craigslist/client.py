@@ -20,9 +20,7 @@ _logger = logging.getLogger(__name__)
 
 
 CRAIGSLIST_DATE_FORMAT = "%Y-%m-%d %H:%M"
-CRAIGSLIST_SEARCH_URL = (
-    "https://{site}.craigslist.org/search/{category}?query=asdf#search=1~gallery~{page}~0"
-)
+CRAIGSLIST_SEARCH_URL = "https://{site}.craigslist.org/search/{category}#search=1~gallery~{page}~0"
 
 METRIC_CRAIGSLIST_PARSE_ERROR_COUNT = "craigslist_parse_error_count"
 
