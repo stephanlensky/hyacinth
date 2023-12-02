@@ -2,15 +2,16 @@ import logging
 import re
 from datetime import datetime
 from typing import AsyncGenerator
-from zoneinfo import ZoneInfo
 
+import pyppeteer
 from bs4 import BeautifulSoup
+from zoneinfo import ZoneInfo
 
 from hyacinth.exceptions import ParseError
 from hyacinth.settings import get_settings
 from hyacinth.util.geo import reverse_geotag
 from hyacinth.util.s3 import mirror_image
-from hyacinth.util.scraping import scrape
+from hyacinth.util.scraping import get_browser_page
 from plugins.craigslist.models import CraigslistListing, CraigslistSearchParams
 from plugins.craigslist.util import get_geotag_from_url
 
@@ -19,7 +20,9 @@ _logger = logging.getLogger(__name__)
 
 
 CRAIGSLIST_DATE_FORMAT = "%Y-%m-%d %H:%M"
-CRAIGSLIST_SEARCH_URL = "https://{site}.craigslist.org/search/{category}#search=1~gallery~{page}~0"
+CRAIGSLIST_SEARCH_URL = (
+    "https://{site}.craigslist.org/search/{category}?query=asdf#search=1~gallery~{page}~0"
+)
 
 METRIC_CRAIGSLIST_PARSE_ERROR_COUNT = "craigslist_parse_error_count"
 
@@ -50,41 +53,57 @@ async def _search(
     search_params: CraigslistSearchParams,
 ) -> AsyncGenerator[CraigslistListing, None]:
     page = 0
-    while True:
-        search_results_content = await _get_search_results_content(
-            site=search_params.site, category=search_params.category, page=page
-        )
-        has_next_page, parsed_search_results = _parse_search_results(search_results_content)
+    async with get_browser_page() as puppeteer_page:
+        while True:
+            search_results_content = await _get_search_results_content(
+                puppeteer_page, site=search_params.site, category=search_params.category, page=page
+            )
+            has_next_page, parsed_search_results = _parse_search_results(search_results_content)
 
-        for result_url in parsed_search_results:
-            detail_content = await _get_detail_content(result_url)
-            listing = _parse_result_details(result_url, detail_content)
-            await _enrich_listing(listing)
-            yield listing
+            for result_url in parsed_search_results:
+                detail_content = await _get_detail_content(puppeteer_page, result_url)
+                listing = _parse_result_details(result_url, detail_content)
+                await _enrich_listing(listing)
+                yield listing
 
-        if not has_next_page:
-            break
+            if not has_next_page:
+                break
 
-        page += 1
+            page += 1
 
 
-async def _get_search_results_content(site: str, category: str, page: int) -> str:
+async def _get_search_results_content(
+    puppeteer_page: pyppeteer.page.Page, site: str, category: str, page: int
+) -> str:
     """
     Get the content of a Craigslist search results page.
     """
     search_results_url = CRAIGSLIST_SEARCH_URL.format(site=site, category=category, page=page)
-    # selectors=["html"] to grab entire page
-    scrape_result = await scrape(search_results_url, selectors=["html"], waitUntil="networkidle2")
-    return "<html>" + scrape_result["data"][0]["results"][0]["html"] + "</html>"
+    await puppeteer_page.goto(search_results_url)
+    try:
+        _logger.debug("Waiting for search results to render")
+        await puppeteer_page.waitForFunction(
+            # wait for search results or "no results" message to render
+            """() => document.querySelector('.cl-results-page')?.querySelector('li')
+                || document.querySelector('.no-results').offsetParent !== null""",
+            {"timeout": 5000},  # 5s
+        )
+    except TimeoutError:
+        raise ParseError(
+            "Timed out waiting for search results to render", await puppeteer_page.content()
+        )
+
+    _logger.debug("Getting search results page content")
+    return await puppeteer_page.content()
 
 
-async def _get_detail_content(url: str) -> str:
+async def _get_detail_content(puppeteer_page: pyppeteer.page.Page, url: str) -> str:
     """
     Get the content of a Craigslist listing details page.
     """
-    # selectors=["html"] to grab entire page
-    scrape_result = await scrape(url, selectors=["html"], waitUntil="networkidle2")
-    return "<html>" + scrape_result["data"][0]["results"][0]["html"] + "</html>"
+    await puppeteer_page.goto(url, {"waitUntil": "domcontentloaded"})
+    _logger.debug("Getting search results page content")
+    return await puppeteer_page.content()
 
 
 async def _enrich_listing(listing: CraigslistListing) -> None:
@@ -112,9 +131,13 @@ def _parse_search_results(content: str) -> tuple[bool, list[str]]:
         listing_links = cl_results_page.find_all("a", class_="main", attrs={"href": True})  # type: ignore
         listing_urls = [a.attrs["href"] for a in listing_links]
 
-        page_number = soup.find("span", class_="cl-page-number")
-        num_results = re.findall(r"\b(\d+)\b", page_number.text)  # type: ignore
-        has_next_page = num_results[1] != num_results[2]
+        if len(listing_urls) == 0:
+            # no results
+            has_next_page = False
+        else:
+            page_number = soup.find("span", class_="cl-page-number")
+            num_results = re.findall(r"\b(\d+)\b", page_number.text)  # type: ignore
+            has_next_page = num_results[1] != num_results[2]
 
         return has_next_page, listing_urls
     except Exception as e:

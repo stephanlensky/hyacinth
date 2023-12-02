@@ -55,20 +55,25 @@ get-craigslist-page-sample:
 	#!/usr/bin/env python
 	import asyncio
 	import sys
+	from hyacinth.util.scraping import get_browser_page
 	from plugins.craigslist.client import _get_detail_content, _get_search_results_content, _parse_search_results
 
-	# search results page
-	search_results = asyncio.run(_get_search_results_content('boston','sss',0))
-	with open('{{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_SEARCH_RESULT_SAMPLE_FILENAME}}', 'w') as f:
-		f.write(search_results)
-	print('Wrote {{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_SEARCH_RESULT_SAMPLE_FILENAME}} successfully')
+	async def main():
+		async with get_browser_page() as page:
+			# search results page
+			search_results = await _get_search_results_content(page, 'boston', 'sss', 0)
+			with open('{{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_SEARCH_RESULT_SAMPLE_FILENAME}}', 'w') as f:
+				f.write(search_results)
+			print('Wrote {{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_SEARCH_RESULT_SAMPLE_FILENAME}} successfully')
 
-	# listing page
-	if not search_results:
-		print('No search results found, skipping listing page')
-		sys.exit(0)
-	listing_url = _parse_search_results(search_results)[1][0]
-	listing_page = asyncio.run(_get_detail_content(listing_url))
-	with open('{{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_RESULT_DETAILS_SAMPLE_FILENAME}}', 'w') as f:
-		f.write(listing_page)
-	print('Wrote {{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_RESULT_DETAILS_SAMPLE_FILENAME}} successfully')
+			# listing page
+			if not search_results:
+				print('No search results found, skipping listing page')
+				sys.exit(0)
+			listing_url = _parse_search_results(search_results)[1][0]
+			listing_page = await _get_detail_content(page, listing_url)
+			with open('{{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_RESULT_DETAILS_SAMPLE_FILENAME}}', 'w') as f:
+				f.write(listing_page)
+			print('Wrote {{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_RESULT_DETAILS_SAMPLE_FILENAME}} successfully')
+
+	asyncio.run(main())
