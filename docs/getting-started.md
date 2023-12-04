@@ -34,7 +34,10 @@ In order to connect Hyacinth to Discord, you must first configure an application
   POSTGRES_PASSWORD=<a random password>
   ```
 
-  Remember to replace the values inside `<>`!
+Remember to replace the values inside `<>`!
+
+!!! note
+    Note, the `POSTGRES_USER` and `POSTGRES_PASSWORD` should not be prefixed with `HYACINTH_` (unlike all other environment variables), as they will be used by both the Hyacinth containere and the official Postgres database container.
 
 ## Running the bot
 
