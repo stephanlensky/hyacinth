@@ -2,10 +2,11 @@ import json
 import logging
 from datetime import datetime
 from typing import AsyncGenerator
-from zoneinfo import ZoneInfo
 
+import pyppeteer
 from bs4 import BeautifulSoup
 from pyppeteer.errors import TimeoutError
+from zoneinfo import ZoneInfo
 
 from hyacinth.exceptions import ParseError
 from hyacinth.settings import get_settings
@@ -41,22 +42,8 @@ async def get_listings(
 async def _search(
     search_params: MarketplaceSearchParams,
 ) -> AsyncGenerator[MarketplaceListing, None]:
-    search_results_url = MARKETPLACE_SEARCH_URL.format(
-        location=search_params.location, category=search_params.category
-    )
-
     async with get_browser_page() as page:
-        _logger.debug("Loading marketplace search results")
-        await page.goto(search_results_url)
-        _logger.debug("Waiting for marketplace search results to render")
-        try:
-            await page.waitForFunction(
-                """document.querySelector("div[aria-label='Collection of Marketplace items']") !== null""",
-                {"timeout": 5000},  # 5s
-            )
-        except TimeoutError:
-            raise ParseError("Timed out waiting for search results to render", await page.content())
-        _logger.debug("Marketplace search results rendered")
+        _navigate_to_search_results(page, search_params.location, search_params.category)
 
         num_results = 0
         while True:  # loop while there are new results (scrolling down loads more results)
@@ -88,6 +75,24 @@ async def _search(
             except TimeoutError:
                 _logger.debug("Timed out waiting for more results to load")
                 pass  # page height never increased, likely no more results to load
+
+
+async def _navigate_to_search_results(
+    page: pyppeteer.page.Page, location: str, category: str
+) -> None:
+    search_results_url = MARKETPLACE_SEARCH_URL.format(location=location, category=category)
+
+    _logger.debug("Loading marketplace search results")
+    await page.goto(search_results_url)
+    _logger.debug("Waiting for marketplace search results to render")
+    try:
+        await page.waitForFunction(
+            """document.querySelector("div[aria-label='Collection of Marketplace items']") !== null""",
+            {"timeout": 5000},  # 5s
+        )
+    except TimeoutError:
+        raise ParseError("Timed out waiting for search results to render", await page.content())
+    _logger.debug("Marketplace search results rendered")
 
 
 async def _enrich_listing(listing: MarketplaceListing) -> None:

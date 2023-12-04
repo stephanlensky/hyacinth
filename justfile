@@ -4,9 +4,10 @@ PYTHON_DIRS := "hyacinth plugins tests"
 TEST_RESOURCES_DIR := "tests/resources"
 
 # sample pages used for testing
-CRAIGSLIST_SAMPLE_SEARCH_URL := "https://boston.craigslist.org/search/sss"
 CRAIGSLIST_SEARCH_RESULT_SAMPLE_FILENAME := "craigslist-search-results-sample.html"
 CRAIGSLIST_RESULT_DETAILS_SAMPLE_FILENAME := "craigslist-result-details-sample.html"
+MARKETPLACE_SEARCH_RESULT_SAMPLE_FILENAME := "marketplace-search-results-sample.html"
+MARKETPLACE_RESULT_DETAILS_SAMPLE_FILENAME := "marketplace-result-details-sample.html"
 
 # plugin data files
 CRAIGSLIST_AREAS_URL := "https://reference.craigslist.org/Areas"
@@ -67,13 +68,44 @@ get-craigslist-page-sample:
 			print('Wrote {{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_SEARCH_RESULT_SAMPLE_FILENAME}} successfully')
 
 			# listing page
-			if not search_results:
+			listing_urls = _parse_search_results(search_results)[1]
+			if not listing_urls:
 				print('No search results found, skipping listing page')
 				sys.exit(0)
-			listing_url = _parse_search_results(search_results)[1][0]
-			listing_page = await _get_detail_content(page, listing_url)
+			listing_page = await _get_detail_content(page, listing_urls[0])
 			with open('{{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_RESULT_DETAILS_SAMPLE_FILENAME}}', 'w') as f:
 				f.write(listing_page)
 			print('Wrote {{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_RESULT_DETAILS_SAMPLE_FILENAME}} successfully')
+
+	asyncio.run(main())
+
+# requires active poetry environment
+get-marketplace-page-sample:
+	#!/usr/bin/env python
+	import asyncio
+	import sys
+	from hyacinth.util.scraping import get_browser_page
+	from plugins.marketplace.client import _navigate_to_search_results, _parse_search_results
+
+	async def main():
+		async with get_browser_page() as page:
+			# search results page
+			await _navigate_to_search_results(page, 'boston', 'motorcycles')
+			search_results = await page.content()
+			with open('{{TEST_RESOURCES_DIR}}/{{MARKETPLACE_SEARCH_RESULT_SAMPLE_FILENAME}}', 'w') as f:
+				f.write(search_results)
+			print('Wrote {{TEST_RESOURCES_DIR}}/{{MARKETPLACE_SEARCH_RESULT_SAMPLE_FILENAME}} successfully')
+
+			# listing page
+			listing_urls = _parse_search_results(search_results)
+			if not listing_urls:
+				print('No search results found, skipping listing page')
+				sys.exit(0)
+
+			await page.goto(listing_urls[0])
+			listing_page = await page.content()
+			with open('{{TEST_RESOURCES_DIR}}/{{MARKETPLACE_RESULT_DETAILS_SAMPLE_FILENAME}}', 'w') as f:
+				f.write(listing_page)
+			print('Wrote {{TEST_RESOURCES_DIR}}/{{MARKETPLACE_RESULT_DETAILS_SAMPLE_FILENAME}} successfully')
 
 	asyncio.run(main())

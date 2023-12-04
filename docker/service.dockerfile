@@ -35,6 +35,7 @@ RUN pip install poetry
 COPY . .
 
 FROM shared-setup as dev
+RUN just --completions bash >> /home/joyvan/.bashrc
 RUN just install-dev
 
 FROM shared-setup as prod
