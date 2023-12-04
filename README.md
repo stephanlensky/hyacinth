@@ -29,3 +29,9 @@ docker-compose up -d devbox
 ```
 
 Then attach to the container using your favorite IDE.
+
+## Getting additional help
+
+If you have a question, bug report, or want to make a general inquiry about the project, please create a new [GitHub issue](https://github.com/stephanlensky/hyacinth/issues/new). If you are having a problem with Hyacinth, please make sure to include your operating system, complete logs, and any additional information about your Hyacinth configuration that may be relevant.
+
+Questions directed to any personal accounts outside of GitHub will be ignored.
