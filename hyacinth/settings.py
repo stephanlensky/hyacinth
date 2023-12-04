@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,8 +33,8 @@ class Settings(BaseSettings):
     ]
 
     # db credentials
-    postgres_user: str
-    postgres_password: str
+    postgres_user: str = Field(alias="POSTGRES_USER")
+    postgres_password: str = Field(alias="POSTGRES_PASSWORD")
 
     # the local geocoding implementation does not require a google API key, but requires first
     # downloading some spatial data and only supports the US
