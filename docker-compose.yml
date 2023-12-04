@@ -42,7 +42,7 @@ services:
       target: dev
       args:
         app_env: dev
-    entrypoint: /bin/bash
+    entrypoint: "poetry shell"
     stdin_open: true
     tty: true
 
