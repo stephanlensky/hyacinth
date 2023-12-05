@@ -75,6 +75,7 @@ jobs:
           build-args: |
             GIT_COMMIT=${{ env.BUILD_HASH }}
             DEBUG=False
+            app_env=${{ matrix.target }}
           tags: ${{ env.CUSTOM_TAG }}
           labels: ${{ steps.meta.outputs.labels }}
 
