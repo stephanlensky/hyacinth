@@ -63,13 +63,13 @@ jobs:
 
         # Line above must be changed!
 
-      #   - name: Move context to root
-      #     run: cp docker/service.dockerfile .
+      - name: Move context to root
+        run: cp docker/service.dockerfile Dockerfile
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
-          context: docker/
+          context: .
           target: ${{ matrix.target }}/
           push: true
           build-args: |
