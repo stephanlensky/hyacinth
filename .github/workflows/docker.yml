@@ -70,7 +70,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          target: ${{ matrix.target }}/
+          target: ${{ matrix.target }}
           push: true
           build-args: |
             GIT_COMMIT=${{ env.BUILD_HASH }}
