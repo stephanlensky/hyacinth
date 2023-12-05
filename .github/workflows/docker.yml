@@ -64,9 +64,9 @@ jobs:
         # Line above must be changed!
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
-          context: ./docker/service.dockerfile
+          context: docker/service.dockerfile
           target: ${{ matrix.target }}/
           push: true
           build-args: |
