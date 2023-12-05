@@ -59,7 +59,7 @@ jobs:
         run: |
           echo "${{ steps.branch-name.outputs.current_branch }}"
           echo "${{ steps.meta.outputs.tags }}"
-          echo "CUSTOM_TAG=ghcr.io/kenwoodfox/$(echo hyacinth:${{ matrix.target }} | sed 's/[A-Z_]\|L&//')-$(echo "${{ steps.branch-name.outputs.current_branch }}" | sed 's/[^a-zA-Z0-9]/-/g; s/[A-Z]/\L&/g')" >> $GITHUB_ENV
+          echo "CUSTOM_TAG=ghcr.io/kenwoodfox/$(echo hyacinth-${{ matrix.target }} | sed 's/[A-Z_]\|L&//'):$(echo "${{ steps.branch-name.outputs.current_branch }}" | sed 's/[^a-zA-Z0-9]/-/g; s/[A-Z]/\L&/g')" >> $GITHUB_ENV
 
         # Line above must be changed!
 
@@ -84,20 +84,20 @@ jobs:
     needs: [build-and-publish-image]
 
     steps:
-      - name: Clean hyacinth
-        id: clean_hyacinth
+      - name: Clean hyacinth dev
+        id: clean_hyacinth_dev
         uses: actions/delete-package-versions@v4
         with:
-          package-name: "hyacinth"
+          package-name: "hyacinth-dev"
           package-type: "container"
           min-versions-to-keep: 2
           delete-only-untagged-versions: "true"
 
-    #   - name: Clean hyacinth prod
-    #     id: clean_hyacinth_prod
-    #     uses: actions/delete-package-versions@v4
-    #     with:
-    #       package-name: "hyacinth"
-    #       package-type: "container"
-    #       min-versions-to-keep: 2
-    #       delete-only-untagged-versions: "true"
+      - name: Clean hyacinth prod
+        id: clean_hyacinth_prod
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: "hyacinth-prod"
+          package-type: "container"
+          min-versions-to-keep: 2
+          delete-only-untagged-versions: "true"
