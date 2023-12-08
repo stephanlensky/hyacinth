@@ -57,7 +57,7 @@ async def _search(
 
             async with get_browser_page() as result_page:
                 for url in result_urls:
-                    await result_page.goto(url)
+                    await result_page.goto(url, options={"waitUntil": "networkidle0"})
                     result_content = await result_page.content()
 
                     listing = _parse_result_details(url, result_content)
