@@ -95,7 +95,7 @@ async def _navigate_to_search_results(
 
 
 async def _navigate_to_listing_and_get_content(page: pyppeteer.page.Page, url: str) -> str:
-    await page.goto(url, {"waitUntil": "networkidle0"})
+    await page.goto(url)
     _logger.debug(f"Getting page content for {url}")
     return await page.content()
 
