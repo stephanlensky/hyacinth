@@ -1,6 +1,6 @@
 ARG app_env
 
-FROM python:3.12.0-bullseye as base
+FROM python:3.12.1-bullseye as base
 
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
