@@ -2,17 +2,17 @@
 
 [[package]]
 name = "aioboto3"
-version = "12.0.0"
+version = "12.1.0"
 description = "Async boto3 wrapper"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "aioboto3-12.0.0-py3-none-any.whl", hash = "sha256:23895e734f83e34827a38d3a08ccc3f4178cc8d4e3a7b7031a0cbf8efc875555"},
-    {file = "aioboto3-12.0.0.tar.gz", hash = "sha256:c2bbb990b4efd2e474a1e8a42a80291faf6434b2dc8678f163208d338b2dba39"},
+    {file = "aioboto3-12.1.0-py3-none-any.whl", hash = "sha256:9f9e07261ddf3d6fec04dd8d5f5a55e0cb3250089f4282f7a60054495ad9699b"},
+    {file = "aioboto3-12.1.0.tar.gz", hash = "sha256:8eae15dd52c9a43845448508ad0f912028a0a176bbd85b78e1377bb5f2a4d450"},
 ]
 
 [package.dependencies]
-aiobotocore = {version = "2.7.0", extras = ["boto3"]}
+aiobotocore = {version = "2.8.0", extras = ["boto3"]}
 
 [package.extras]
 chalice = ["chalice (>=1.24.0)"]
@@ -20,25 +20,25 @@ s3cse = ["cryptography (>=2.3.1)"]
 
 [[package]]
 name = "aiobotocore"
-version = "2.7.0"
+version = "2.8.0"
 description = "Async client for aws services using botocore and aiohttp"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "aiobotocore-2.7.0-py3-none-any.whl", hash = "sha256:aec605df77ce4635a0479b50fd849aa6b640900f7b295021ecca192e1140e551"},
-    {file = "aiobotocore-2.7.0.tar.gz", hash = "sha256:506591374cc0aee1bdf0ebe290560424a24af176dfe2ea7057fe1df97c4f0467"},
+    {file = "aiobotocore-2.8.0-py3-none-any.whl", hash = "sha256:32e632fea387acd45416c2bbc03828ee2c2a66a7dc4bd3a9bcb808dea249c469"},
+    {file = "aiobotocore-2.8.0.tar.gz", hash = "sha256:f160497cef21cfffc1a8d4219eeb27bb7b243389c2d021a812b9c0e3fb8e2bd1"},
 ]
 
 [package.dependencies]
 aiohttp = ">=3.7.4.post0,<4.0.0"
 aioitertools = ">=0.5.1,<1.0.0"
-boto3 = {version = ">=1.28.16,<1.28.65", optional = true, markers = "extra == \"boto3\""}
-botocore = ">=1.31.16,<1.31.65"
+boto3 = {version = ">=1.29.4,<1.33.2", optional = true, markers = "extra == \"boto3\""}
+botocore = ">=1.32.4,<1.33.2"
 wrapt = ">=1.10.10,<2.0.0"
 
 [package.extras]
-awscli = ["awscli (>=1.29.16,<1.29.65)"]
-boto3 = ["boto3 (>=1.28.16,<1.28.65)"]
+awscli = ["awscli (>=1.30.4,<1.31.2)"]
+boto3 = ["boto3 (>=1.29.4,<1.33.2)"]
 
 [[package]]
 name = "aiohttp"
@@ -336,32 +336,32 @@ files = [
 
 [[package]]
 name = "boto3"
-version = "1.28.64"
+version = "1.33.1"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "boto3-1.28.64-py3-none-any.whl", hash = "sha256:a99150a30c038c73e89662836820a8cce914afab5ea377942a37c484b85f4438"},
-    {file = "boto3-1.28.64.tar.gz", hash = "sha256:a5cf93b202568e9d378afdc84be55a6dedf11d30156289fe829e23e6d7dccabb"},
+    {file = "boto3-1.33.1-py3-none-any.whl", hash = "sha256:fa5aa92d16763cb906fb4a83d6eba887342202a980bea07862af5ba40827aa5a"},
+    {file = "boto3-1.33.1.tar.gz", hash = "sha256:1fe5fa75ff0f0c29a6f55e818d149d33571731e692a7b785ded7a28ac832cae8"},
 ]
 
 [package.dependencies]
-botocore = ">=1.31.64,<1.32.0"
+botocore = ">=1.33.1,<1.34.0"
 jmespath = ">=0.7.1,<2.0.0"
-s3transfer = ">=0.7.0,<0.8.0"
+s3transfer = ">=0.8.0,<0.9.0"
 
 [package.extras]
 crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.31.64"
+version = "1.33.1"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "botocore-1.31.64-py3-none-any.whl", hash = "sha256:7b709310343a5b430ec9025b2e17c0bac6b16c05f1ac1d9521dece3f10c71bac"},
-    {file = "botocore-1.31.64.tar.gz", hash = "sha256:d8eb4b724ac437343359b318d73de0cfae0fecb24095827e56135b0ad6b44caf"},
+    {file = "botocore-1.33.1-py3-none-any.whl", hash = "sha256:c744b90980786c610dd9ad9c50cf2cdde3f1c4634b954a33613f6f8a1865a1de"},
+    {file = "botocore-1.33.1.tar.gz", hash = "sha256:d22d29916905e5f0670b91f07688e92b2c4a2075f9a474d6edbe7d22040d8fbf"},
 ]
 
 [package.dependencies]
@@ -370,7 +370,7 @@ python-dateutil = ">=2.1,<3.0.0"
 urllib3 = {version = ">=1.25.4,<2.1", markers = "python_version >= \"3.10\""}
 
 [package.extras]
-crt = ["awscrt (==0.16.26)"]
+crt = ["awscrt (==0.19.17)"]
 
 [[package]]
 name = "certifi"
@@ -1152,13 +1152,13 @@ min-versions = ["babel (==2.9.0)", "click (==7.0)", "colorama (==0.4)", "ghp-imp
 
 [[package]]
 name = "mkdocs-material"
-version = "9.4.14"
+version = "9.5.1"
 description = "Documentation that simply works"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocs_material-9.4.14-py3-none-any.whl", hash = "sha256:dbc78a4fea97b74319a6aa9a2f0be575a6028be6958f813ba367188f7b8428f6"},
-    {file = "mkdocs_material-9.4.14.tar.gz", hash = "sha256:a511d3ff48fa8718b033e7e37d17abd9cc1de0fdf0244a625ca2ae2387e2416d"},
+    {file = "mkdocs_material-9.5.1-py3-none-any.whl", hash = "sha256:2e01249bc41813afe2479a4a659f8ba899c3355ccaf9310b5b782952df9c1dea"},
+    {file = "mkdocs_material-9.5.1.tar.gz", hash = "sha256:7ec5d20ed5eee97bb090823a33b33e177ad0704d74bad5937b53acca571ddb3d"},
 ]
 
 [package.dependencies]
@@ -1431,10 +1431,7 @@ files = [
 ]
 
 [package.dependencies]
-numpy = [
-    {version = ">=1.23.2,<2", markers = "python_version == \"3.11\""},
-    {version = ">=1.26.0,<2", markers = "python_version >= \"3.12\""},
-]
+numpy = {version = ">=1.26.0,<2", markers = "python_version >= \"3.12\""}
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
 tzdata = ">=2022.1"
@@ -1802,13 +1799,13 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "pytest-asyncio"
-version = "0.21.1"
+version = "0.23.2"
 description = "Pytest support for asyncio"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "pytest-asyncio-0.21.1.tar.gz", hash = "sha256:40a7eae6dded22c7b604986855ea48400ab15b069ae38116e8c01238e9eeb64d"},
-    {file = "pytest_asyncio-0.21.1-py3-none-any.whl", hash = "sha256:8666c1c8ac02631d7c51ba282e0c69a8a452b211ffedf2599099845da5c5c37b"},
+    {file = "pytest-asyncio-0.23.2.tar.gz", hash = "sha256:c16052382554c7b22d48782ab3438d5b10f8cf7a4bdcae7f0f67f097d95beecc"},
+    {file = "pytest_asyncio-0.23.2-py3-none-any.whl", hash = "sha256:ea9021364e32d58f0be43b91c6233fb8d2224ccef2398d6837559e587682808f"},
 ]
 
 [package.dependencies]
@@ -1816,7 +1813,7 @@ pytest = ">=7.0.0"
 
 [package.extras]
 docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1.0)"]
-testing = ["coverage (>=6.2)", "flaky (>=3.5.0)", "hypothesis (>=5.7.1)", "mypy (>=0.931)", "pytest-trio (>=0.7.0)"]
+testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)"]
 
 [[package]]
 name = "pytest-cov"
@@ -2104,46 +2101,46 @@ files = [
 
 [[package]]
 name = "ruff"
-version = "0.1.6"
+version = "0.1.7"
 description = "An extremely fast Python linter and code formatter, written in Rust."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "ruff-0.1.6-py3-none-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:88b8cdf6abf98130991cbc9f6438f35f6e8d41a02622cc5ee130a02a0ed28703"},
-    {file = "ruff-0.1.6-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:5c549ed437680b6105a1299d2cd30e4964211606eeb48a0ff7a93ef70b902248"},
-    {file = "ruff-0.1.6-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1cf5f701062e294f2167e66d11b092bba7af6a057668ed618a9253e1e90cfd76"},
-    {file = "ruff-0.1.6-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:05991ee20d4ac4bb78385360c684e4b417edd971030ab12a4fbd075ff535050e"},
-    {file = "ruff-0.1.6-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:87455a0c1f739b3c069e2f4c43b66479a54dea0276dd5d4d67b091265f6fd1dc"},
-    {file = "ruff-0.1.6-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:683aa5bdda5a48cb8266fcde8eea2a6af4e5700a392c56ea5fb5f0d4bfdc0240"},
-    {file = "ruff-0.1.6-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:137852105586dcbf80c1717facb6781555c4e99f520c9c827bd414fac67ddfb6"},
-    {file = "ruff-0.1.6-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:bd98138a98d48a1c36c394fd6b84cd943ac92a08278aa8ac8c0fdefcf7138f35"},
-    {file = "ruff-0.1.6-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3a0cd909d25f227ac5c36d4e7e681577275fb74ba3b11d288aff7ec47e3ae745"},
-    {file = "ruff-0.1.6-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:e8fd1c62a47aa88a02707b5dd20c5ff20d035d634aa74826b42a1da77861b5ff"},
-    {file = "ruff-0.1.6-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:fd89b45d374935829134a082617954120d7a1470a9f0ec0e7f3ead983edc48cc"},
-    {file = "ruff-0.1.6-py3-none-musllinux_1_2_i686.whl", hash = "sha256:491262006e92f825b145cd1e52948073c56560243b55fb3b4ecb142f6f0e9543"},
-    {file = "ruff-0.1.6-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:ea284789861b8b5ca9d5443591a92a397ac183d4351882ab52f6296b4fdd5462"},
-    {file = "ruff-0.1.6-py3-none-win32.whl", hash = "sha256:1610e14750826dfc207ccbcdd7331b6bd285607d4181df9c1c6ae26646d6848a"},
-    {file = "ruff-0.1.6-py3-none-win_amd64.whl", hash = "sha256:4558b3e178145491e9bc3b2ee3c4b42f19d19384eaa5c59d10acf6e8f8b57e33"},
-    {file = "ruff-0.1.6-py3-none-win_arm64.whl", hash = "sha256:03910e81df0d8db0e30050725a5802441c2022ea3ae4fe0609b76081731accbc"},
-    {file = "ruff-0.1.6.tar.gz", hash = "sha256:1b09f29b16c6ead5ea6b097ef2764b42372aebe363722f1605ecbcd2b9207184"},
+    {file = "ruff-0.1.7-py3-none-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:7f80496854fdc65b6659c271d2c26e90d4d401e6a4a31908e7e334fab4645aac"},
+    {file = "ruff-0.1.7-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:1ea109bdb23c2a4413f397ebd8ac32cb498bee234d4191ae1a310af760e5d287"},
+    {file = "ruff-0.1.7-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8b0c2de9dd9daf5e07624c24add25c3a490dbf74b0e9bca4145c632457b3b42a"},
+    {file = "ruff-0.1.7-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:69a4bed13bc1d5dabf3902522b5a2aadfebe28226c6269694283c3b0cecb45fd"},
+    {file = "ruff-0.1.7-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:de02ca331f2143195a712983a57137c5ec0f10acc4aa81f7c1f86519e52b92a1"},
+    {file = "ruff-0.1.7-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:45b38c3f8788a65e6a2cab02e0f7adfa88872696839d9882c13b7e2f35d64c5f"},
+    {file = "ruff-0.1.7-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:6c64cb67b2025b1ac6d58e5ffca8f7b3f7fd921f35e78198411237e4f0db8e73"},
+    {file = "ruff-0.1.7-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:9dcc6bb2f4df59cb5b4b40ff14be7d57012179d69c6565c1da0d1f013d29951b"},
+    {file = "ruff-0.1.7-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:df2bb4bb6bbe921f6b4f5b6fdd8d8468c940731cb9406f274ae8c5ed7a78c478"},
+    {file = "ruff-0.1.7-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:276a89bcb149b3d8c1b11d91aa81898fe698900ed553a08129b38d9d6570e717"},
+    {file = "ruff-0.1.7-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:90c958fe950735041f1c80d21b42184f1072cc3975d05e736e8d66fc377119ea"},
+    {file = "ruff-0.1.7-py3-none-musllinux_1_2_i686.whl", hash = "sha256:6b05e3b123f93bb4146a761b7a7d57af8cb7384ccb2502d29d736eaade0db519"},
+    {file = "ruff-0.1.7-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:290ecab680dce94affebefe0bbca2322a6277e83d4f29234627e0f8f6b4fa9ce"},
+    {file = "ruff-0.1.7-py3-none-win32.whl", hash = "sha256:416dfd0bd45d1a2baa3b1b07b1b9758e7d993c256d3e51dc6e03a5e7901c7d80"},
+    {file = "ruff-0.1.7-py3-none-win_amd64.whl", hash = "sha256:4af95fd1d3b001fc41325064336db36e3d27d2004cdb6d21fd617d45a172dd96"},
+    {file = "ruff-0.1.7-py3-none-win_arm64.whl", hash = "sha256:0683b7bfbb95e6df3c7c04fe9d78f631f8e8ba4868dfc932d43d690698057e2e"},
+    {file = "ruff-0.1.7.tar.gz", hash = "sha256:dffd699d07abf54833e5f6cc50b85a6ff043715da8788c4a79bcd4ab4734d306"},
 ]
 
 [[package]]
 name = "s3transfer"
-version = "0.7.0"
+version = "0.8.0"
 description = "An Amazon S3 Transfer Manager"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "s3transfer-0.7.0-py3-none-any.whl", hash = "sha256:10d6923c6359175f264811ef4bf6161a3156ce8e350e705396a7557d6293c33a"},
-    {file = "s3transfer-0.7.0.tar.gz", hash = "sha256:fd3889a66f5fe17299fe75b82eae6cf722554edca744ca5d5fe308b104883d2e"},
+    {file = "s3transfer-0.8.0-py3-none-any.whl", hash = "sha256:baa479dc2e63e5c2ed51611b4d46cdf0295e2070d8d0b86b22f335ee5b954986"},
+    {file = "s3transfer-0.8.0.tar.gz", hash = "sha256:e8d6bd52ffd99841e3a57b34370a54841f12d3aab072af862cdcc50955288002"},
 ]
 
 [package.dependencies]
-botocore = ">=1.12.36,<2.0a.0"
+botocore = ">=1.32.7,<2.0a.0"
 
 [package.extras]
-crt = ["botocore[crt] (>=1.20.29,<2.0a.0)"]
+crt = ["botocore[crt] (>=1.32.7,<2.0a.0)"]
 
 [[package]]
 name = "scipy"
@@ -2806,5 +2803,5 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.11,<3.13"
-content-hash = "a9bf7bf6cec04ae82efa365036bd88cb62e95d2149a3e22976feea1106934873"
+python-versions = ">=3.12,<3.13"
+content-hash = "2631de3d0d950c7d7b03fc8a54fa595939a880a141e226dc6fa3a982887673c9"
