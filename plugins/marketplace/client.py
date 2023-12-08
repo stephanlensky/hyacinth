@@ -57,8 +57,7 @@ async def _search(
 
             async with get_browser_page() as result_page:
                 for url in result_urls:
-                    await result_page.goto(url, options={"waitUntil": "networkidle0"})
-                    result_content = await result_page.content()
+                    result_content = await _navigate_to_listing_and_get_content(result_page, url)
 
                     listing = _parse_result_details(url, result_content)
 
@@ -93,6 +92,12 @@ async def _navigate_to_search_results(
     except TimeoutError:
         raise ParseError("Timed out waiting for search results to render", await page.content())
     _logger.debug("Marketplace search results rendered")
+
+
+async def _navigate_to_listing_and_get_content(page: pyppeteer.page.Page, url: str) -> str:
+    await page.goto(url, {"waitUntil": "networkidle0"})
+    _logger.debug(f"Getting page content for {url}")
+    return await page.content()
 
 
 async def _enrich_listing(listing: MarketplaceListing) -> None:

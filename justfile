@@ -85,7 +85,11 @@ get-marketplace-page-sample:
 	import asyncio
 	import sys
 	from hyacinth.util.scraping import get_browser_page
-	from plugins.marketplace.client import _navigate_to_search_results, _parse_search_results
+	from plugins.marketplace.client import (
+		_navigate_to_search_results,
+		_navigate_to_listing_and_get_content,
+		_parse_search_results
+	)
 
 	async def main():
 		async with get_browser_page() as page:
@@ -102,8 +106,7 @@ get-marketplace-page-sample:
 				print('No search results found, skipping listing page')
 				sys.exit(0)
 
-			await page.goto(listing_urls[0])
-			listing_page = await page.content()
+			listing_page = await _navigate_to_listing_and_get_content(page, listing_urls[0])
 			with open('{{TEST_RESOURCES_DIR}}/{{MARKETPLACE_RESULT_DETAILS_SAMPLE_FILENAME}}', 'w') as f:
 				f.write(listing_page)
 			print('Wrote {{TEST_RESOURCES_DIR}}/{{MARKETPLACE_RESULT_DETAILS_SAMPLE_FILENAME}} successfully')
