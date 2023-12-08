@@ -106,6 +106,7 @@ get-marketplace-page-sample:
 				print('No search results found, skipping listing page')
 				sys.exit(0)
 
+			await page.setJavaScriptEnabled(False)
 			listing_page = await _navigate_to_listing_and_get_content(page, listing_urls[0])
 			with open('{{TEST_RESOURCES_DIR}}/{{MARKETPLACE_RESULT_DETAILS_SAMPLE_FILENAME}}', 'w') as f:
 				f.write(listing_page)

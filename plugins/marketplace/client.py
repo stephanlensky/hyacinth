@@ -56,6 +56,9 @@ async def _search(
             num_results = len(result_urls)
 
             async with get_browser_page() as result_page:
+                # listings are parsed directly from a script tag, so no need to allow JS rendering
+                await page.setJavaScriptEnabled(False)
+
                 for url in result_urls:
                     result_content = await _navigate_to_listing_and_get_content(result_page, url)
 
