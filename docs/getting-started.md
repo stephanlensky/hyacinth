@@ -39,6 +39,28 @@ Remember to replace the values inside `<>`!
 !!! note
     Note, the `POSTGRES_USER` and `POSTGRES_PASSWORD` should not be prefixed with `HYACINTH_` (unlike all other environment variables), as they will be used by both the Hyacinth containere and the official Postgres database container.
 
+## Downloading geocoding data
+
+Hyacinth automatically tries to locate the town and state of listings using a process known as [reverse geocoding](https://en.wikipedia.org/wiki/Reverse_geocoding). Before running the bot, you must decide whether you want to use the local reverse geocoder (easier, but currently only supports listings within the US) or the [Google Geocoding API](https://developers.google.com/maps/documentation/geocoding/requests-reverse-geocoding).
+
+### Local reverse geocoding (US only)
+
+To use the local reverse geocoder, set `HYACINTH_USE_LOCAL_GEOCODER=true` in your `.env` file. Then, download the required data files and place them in the `geography` folder at the root of the repository (create this folder if it is not already present):
+
+1. `cities1000.txt`, from [geonames.org](https://www.geonames.org/). This file is contained in `cities1000.zip`, which can be downloaded [here](https://download.geonames.org/export/dump/).
+2. `gadm36_USA.gpkg`, downloadable from [gadm.org](https://gadm.org/download_country_v3.html) (select "United States" and download the "Geopackage").
+
+### Google Geocoding API
+
+To instead use the [Google Geocoding API](https://developers.google.com/maps/documentation/geocoding/requests-reverse-geocoding), set the following variables in your `.env` file:
+
+```
+HYACINTH_USE_LOCAL_GEOCODER=true
+HYACINTH_GOOGLE_GEOCODING_API_KEY=<your google geocoding API key>
+```
+
+Note, acquiring a Google Geocoding API key will require setting up a new project in Google Cloud Platform. Fees may be incurred if you do not configure an appropriate budget for your project. Proceed at your own risk.
+
 ## Running the bot
 
 After completing the steps above, start Hyacinth with the following Docker command:
