@@ -43,7 +43,7 @@ async def _search(
     search_params: MarketplaceSearchParams,
 ) -> AsyncGenerator[MarketplaceListing, None]:
     async with get_browser_page() as page:
-        _navigate_to_search_results(page, search_params.location, search_params.category)
+        await _navigate_to_search_results(page, search_params.location, search_params.category)
 
         num_results = 0
         while True:  # loop while there are new results (scrolling down loads more results)
