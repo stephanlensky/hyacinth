@@ -26,4 +26,4 @@ def save_poll_failure_report(e: Exception) -> None:
         f.write(traceback.format_exc())
         if isinstance(e, ParseError):
             f.write("\n\nThis error was caused while parsing the following content:\n\n")
-            f.write(e.page_content)
+            f.write(e.page_content if e.page_content else "<empty page content>")
