@@ -37,7 +37,7 @@ In order to connect Hyacinth to Discord, you must first configure an application
 Remember to replace the values inside `<>`!
 
 !!! note
-    Note, the `POSTGRES_USER` and `POSTGRES_PASSWORD` should not be prefixed with `HYACINTH_` (unlike all other environment variables), as they will be used by both the Hyacinth containere and the official Postgres database container.
+    Note, the `POSTGRES_USER` and `POSTGRES_PASSWORD` should not be prefixed with `HYACINTH_` (unlike all other environment variables), as they will be used by both the Hyacinth container and the official Postgres database container.
 
 ## Downloading geocoding data
 
