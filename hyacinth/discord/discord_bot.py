@@ -28,6 +28,7 @@ from hyacinth.notifier import ChannelNotifier
 from hyacinth.plugin import Plugin, register_plugin
 from hyacinth.settings import get_settings
 from hyacinth.util.decorators import log_exceptions
+from hyacinth.util.geo import get_local_geolocator
 
 settings = get_settings()
 _logger = logging.getLogger(__name__)
@@ -225,6 +226,7 @@ class DiscordBot:
 
 
 async def start() -> None:
+    _logger.info("Initializing bot...")
     loop = asyncio.get_running_loop()
 
     intents = discord.Intents(guilds=True)
@@ -238,5 +240,10 @@ async def start() -> None:
         except Exception:
             _logger.exception("Error in on_ready")
             await client.close()
+
+    # if using local geocoder, trigger loading of geography datasets before starting the bot, as
+    # this can take a few seconds.
+    if settings.use_local_geocoder:
+        get_local_geolocator()
 
     await client.start(settings.discord_token)
