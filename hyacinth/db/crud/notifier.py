@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from hyacinth.db.models import ChannelNotifierState
@@ -73,14 +72,14 @@ def get_channel_notifiers(
     saved_states: list[ChannelNotifierState] = session.query(ChannelNotifierState).all()
 
     notifiers: list[ChannelNotifier] = []
-    stale_notifier_channel_ids: list[str] = []
+    stale_notifiers: list[ChannelNotifierState] = []
     for notifier_state in saved_states:
         notifier_channel = client.get_channel(int(notifier_state.channel_id))
 
         # If the channel no longer exists, delete the notifier from the database.
         if notifier_channel is None:
             _logger.info(f"Found stale notifier for channel {notifier_state.channel_id}! Deleting.")
-            stale_notifier_channel_ids.append(notifier_state.channel_id)
+            stale_notifiers.append(notifier_state)
             continue
 
         # Otherwise, create a new ChannelNotifier from the saved state.
@@ -106,19 +105,10 @@ def get_channel_notifiers(
         )
         notifiers.append(notifier)
 
-    if stale_notifier_channel_ids:
-        _logger.info(
-            f"Deleting {len(stale_notifier_channel_ids)} stale notifiers from the database."
-        )
-        stmt = delete(ChannelNotifierState).where(
-            ChannelNotifierState.channel_id.in_(stale_notifier_channel_ids)
-        )
-        session.execute(stmt)
+    if stale_notifiers:
+        _logger.info(f"Deleting {len(stale_notifiers)} stale notifiers from the database.")
+        for notifier_state in stale_notifiers:
+            session.delete(notifier_state)
         session.commit()
 
     return notifiers
-
-
-def delete_channel_notifiers(session: Session, channel_id: int) -> None:
-    stmt = delete(ChannelNotifierState).where(ChannelNotifierState.channel_id == str(channel_id))
-    session.execute(stmt)
