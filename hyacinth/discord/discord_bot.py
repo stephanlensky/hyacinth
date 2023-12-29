@@ -242,7 +242,7 @@ async def start() -> None:
             await client.close()
 
     # if using local geocoder, trigger loading of geography datasets before starting the bot, as
-    # this can take a few seconds.
+    # this can take a few seconds and impact the responsiveness of the bot.
     if settings.use_local_geocoder:
         get_local_geolocator()
 
