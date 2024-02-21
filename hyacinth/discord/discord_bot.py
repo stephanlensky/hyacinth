@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+from datetime import datetime
 
 import discord
 from discord import app_commands
@@ -48,6 +49,8 @@ class DiscordBot:
 
     async def on_ready(self) -> None:
         _logger.info(f"We have logged in as {self.client.user}")
+        _logger.info(f"Current system timezone is {datetime.now().astimezone().tzname()}")
+        _logger.info(f"Configured user timezone is {settings.tz}")
 
         start_metrics_write_task()
         self.load_plugins()
