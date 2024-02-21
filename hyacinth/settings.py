@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     save_crash_reports: bool = True
     crash_report_save_folder: str = "logs"
 
+    # full HTML page dumps of scraped pages
+    save_scraped_pages: bool = False
+    scraped_pages_save_folder: str = "logs"
+
     # observability config
     metrics_enabled: bool = False
     victoria_metrics_host: str | None = None
