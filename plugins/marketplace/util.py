@@ -49,9 +49,9 @@ def get_categories() -> list[MarketplaceCategory]:
             category = MarketplaceCategory(
                 id=category_json["id"],
                 name=category_json["name"],
-                seo_url=category_json["seo_info"]["seo_url"]
-                if category_json.get("seo_info")
-                else None,
+                seo_url=(
+                    category_json["seo_info"]["seo_url"] if category_json.get("seo_info") else None
+                ),
                 parent_id=parent_id,
             )
             categories.append(category)
