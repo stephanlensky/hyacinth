@@ -3,15 +3,15 @@ import re
 from datetime import datetime
 from typing import AsyncGenerator
 
-import pyppeteer
 from bs4 import BeautifulSoup
+from playwright.async_api import Page
 from zoneinfo import ZoneInfo
 
 from hyacinth.exceptions import ParseError
 from hyacinth.settings import get_settings
 from hyacinth.util.geo import reverse_geotag
 from hyacinth.util.s3 import mirror_image
-from hyacinth.util.scraping import get_browser_page
+from hyacinth.util.scraping import get_browser_context
 from plugins.craigslist.models import CraigslistListing, CraigslistSearchParams
 from plugins.craigslist.util import get_geotag_from_url
 
@@ -51,15 +51,16 @@ async def _search(
     search_params: CraigslistSearchParams,
 ) -> AsyncGenerator[CraigslistListing, None]:
     page = 0
-    async with get_browser_page() as puppeteer_page:
+    async with get_browser_context() as browser_context:
+        browser_page = await browser_context.new_page()
         while True:
             search_results_content = await _get_search_results_content(
-                puppeteer_page, site=search_params.site, category=search_params.category, page=page
+                browser_page, site=search_params.site, category=search_params.category, page=page
             )
             has_next_page, parsed_search_results = _parse_search_results(search_results_content)
 
             for result_url in parsed_search_results:
-                detail_content = await _get_detail_content(puppeteer_page, result_url)
+                detail_content = await _get_detail_content(browser_page, result_url)
                 listing = _parse_result_details(result_url, detail_content)
                 await _enrich_listing(listing)
                 yield listing
@@ -71,39 +72,39 @@ async def _search(
 
 
 async def _get_search_results_content(
-    puppeteer_page: pyppeteer.page.Page, site: str, category: str, page: int
+    browser_page: Page, site: str, category: str, page: int
 ) -> str:
     """
     Get the content of a Craigslist search results page.
     """
     search_results_url = CRAIGSLIST_SEARCH_URL.format(site=site, category=category, page=page)
-    await puppeteer_page.goto(search_results_url)
+    await browser_page.goto(search_results_url)
     try:
         _logger.debug("Waiting for search results to render")
-        await puppeteer_page.waitForFunction(
+        await browser_page.wait_for_function(
             # wait for search results or "no results" message to render
             """() => document.querySelector('.cl-results-page')?.querySelector('li')
                 || document.querySelector('.no-results').offsetParent !== null""",
-            {"timeout": 5000},  # 5s
+            timeout=5000,  # 5s
         )
     except TimeoutError:
         raise ParseError(
-            "Timed out waiting for search results to render", await puppeteer_page.content()
+            "Timed out waiting for search results to render", await browser_page.content()
         )
 
     _logger.debug("Getting search results page content")
-    return await puppeteer_page.content()
+    return await browser_page.content()
 
 
-async def _get_detail_content(puppeteer_page: pyppeteer.page.Page, url: str) -> str:
+async def _get_detail_content(browser_page: Page, url: str) -> str:
     """
     Get the content of a Craigslist listing details page.
     """
-    await puppeteer_page.goto(url)
+    await browser_page.goto(url)
     _logger.debug("Waiting for listing details to render")
-    await puppeteer_page.waitForSelector("section.body")
+    await browser_page.wait_for_selector("section.body")
     _logger.debug("Getting listing details page content")
-    return await puppeteer_page.content()
+    return await browser_page.content()
 
 
 async def _enrich_listing(listing: CraigslistListing) -> None:

@@ -3,15 +3,14 @@ import logging
 from datetime import datetime
 from typing import AsyncGenerator
 
-import pyppeteer
 from bs4 import BeautifulSoup
-from pyppeteer.errors import TimeoutError
+from playwright.async_api import Page, TimeoutError
 from zoneinfo import ZoneInfo
 
 from hyacinth.exceptions import ParseError
 from hyacinth.settings import get_settings
 from hyacinth.util.geo import reverse_geotag
-from hyacinth.util.scraping import get_browser_page
+from hyacinth.util.scraping import get_browser_context
 from plugins.marketplace.models import MarketplaceListing, MarketplaceSearchParams
 
 settings = get_settings()
@@ -42,23 +41,24 @@ async def get_listings(
 async def _search(
     search_params: MarketplaceSearchParams,
 ) -> AsyncGenerator[MarketplaceListing, None]:
-    async with get_browser_page() as page:
-        await _navigate_to_search_results(page, search_params.location, search_params.category)
+    async with get_browser_context() as browser_context:
+        search_page = await browser_context.new_page()
+        await _navigate_to_search_results(
+            search_page, search_params.location, search_params.category
+        )
 
         num_results = 0
         while True:  # loop while there are new results (scrolling down loads more results)
             _logger.debug("Getting search results page content")
-            search_content = await page.content()
+            search_content = await search_page.content()
 
             result_urls = _parse_search_results(search_content)
             if len(result_urls) == num_results:  # no more results to load
                 break
             num_results = len(result_urls)
 
-            async with get_browser_page() as result_page:
-                # listings are parsed directly from a script tag, so no need to allow JS rendering
-                await page.setJavaScriptEnabled(False)
-
+            result_page = await browser_context.new_page()
+            try:
                 for url in result_urls:
                     result_content = await _navigate_to_listing_and_get_content(result_page, url)
 
@@ -66,38 +66,42 @@ async def _search(
 
                     await _enrich_listing(listing)
                     yield listing
+            finally:
+                await result_page.close()
 
             _logger.debug("Scrolling down to load more results")
-            previous_height = await page.evaluate("""document.body.scrollHeight""")
-            await page.evaluate("""{window.scrollBy(0, document.body.scrollHeight);}""")
+            previous_height = await search_page.evaluate("document.body.scrollHeight")
+            await search_page.evaluate("window.scrollBy(0, document.body.scrollHeight)")
             try:
-                await page.waitForFunction(
-                    f"""document.body.scrollHeight > {previous_height}""", {"timeout": 5000}
+                await search_page.wait_for_function(
+                    "previous_height => document.body.scrollHeight > previous_height" "",
+                    arg=previous_height,
+                    timeout=5000,
                 )
             except TimeoutError:
                 _logger.debug("Timed out waiting for more results to load")
                 pass  # page height never increased, likely no more results to load
 
 
-async def _navigate_to_search_results(
-    page: pyppeteer.page.Page, location: str, category: str
-) -> None:
+async def _navigate_to_search_results(page: Page, location: str, category: str) -> None:
     search_results_url = MARKETPLACE_SEARCH_URL.format(location=location, category=category)
 
     _logger.debug("Loading marketplace search results")
     await page.goto(search_results_url)
     _logger.debug("Waiting for marketplace search results to render")
     try:
-        await page.waitForFunction(
-            """document.querySelector("div[aria-label='Collection of Marketplace items']") !== null""",
-            {"timeout": 5000},  # 5s
+        selector = "div[aria-label='Collection of Marketplace items']"
+        await page.wait_for_function(
+            "selector => document.querySelector(selector) !== null",
+            arg=selector,
+            timeout=5000,  # 5s
         )
     except TimeoutError:
         raise ParseError("Timed out waiting for search results to render", await page.content())
     _logger.debug("Marketplace search results rendered")
 
 
-async def _navigate_to_listing_and_get_content(page: pyppeteer.page.Page, url: str) -> str:
+async def _navigate_to_listing_and_get_content(page: Page, url: str) -> str:
     await page.goto(url)
     _logger.debug(f"Getting page content for {url}")
     return await page.content()

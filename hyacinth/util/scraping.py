@@ -1,9 +1,10 @@
 import logging
+import typing
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import AsyncIterator, Literal
 from urllib.parse import urlparse
 
-import pyppeteer
+from playwright.async_api import BrowserContext, Page, async_playwright
 
 from hyacinth.metrics import METRIC_SCRAPE_COUNT, write_metric
 from hyacinth.settings import get_settings
@@ -14,37 +15,53 @@ _logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def get_browser_page() -> AsyncIterator[pyppeteer.page.Page]:
-    browser = await pyppeteer.launcher.connect(
-        browserWSEndpoint="ws://browserless:3000?stealth&blockAds=true"
-    )
-    page = await browser.newPage()
-    await page.setViewport({"width": 1920, "height": 1080})
+async def get_browser_context() -> AsyncIterator[BrowserContext]:
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.connect_over_cdp(
+            "ws://browserless:3000?stealth&blockAds=true"
+        )
+        context = await browser.new_context()
+        _patch_new_page(context)
 
-    _patch_goto(page)
-    _patch_content(page)
-
-    try:
-        yield page
-    finally:
-        await browser.close()
+        try:
+            yield context
+        finally:
+            await context.close()
 
 
-def _patch_goto(page: pyppeteer.page.Page) -> None:
+def _patch_new_page(context: BrowserContext) -> None:
+    old_new_page = context.new_page
+
+    async def new_patched_page() -> Page:
+        page = await old_new_page()
+        _patch_goto(page)
+        _patch_content(page)
+        return page
+
+    setattr(context, "new_page", new_patched_page)
+
+
+def _patch_goto(page: Page) -> None:
     old_goto = page.goto
 
-    async def goto_with_log(url: str, opts: dict | None = None) -> None:
+    async def goto_with_log(
+        url: str,
+        *,
+        timeout: typing.Optional[float] = None,
+        wait_until: typing.Optional[
+            Literal["commit", "domcontentloaded", "load", "networkidle"]
+        ] = None,
+        referer: typing.Optional[str] = None,
+    ) -> None:
         _logger.debug(f"Navigating to page {url}")
         domain = urlparse(url).netloc
         write_metric(METRIC_SCRAPE_COUNT, 1, labels={"domain": domain})
-        if not opts:
-            opts = {}
-        await old_goto(url, opts)
+        await old_goto(url, timeout=timeout, wait_until=wait_until, referer=referer)
 
-    page.goto = goto_with_log
+    setattr(page, "goto", goto_with_log)
 
 
-def _patch_content(page: pyppeteer.page.Page) -> None:
+def _patch_content(page: Page) -> None:
     old_content = page.content
 
     async def content_with_page_save() -> str:
@@ -54,4 +71,4 @@ def _patch_content(page: pyppeteer.page.Page) -> None:
 
         return content
 
-    page.content = content_with_page_save
+    setattr(page, "content", content_with_page_save)

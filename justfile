@@ -56,11 +56,13 @@ get-craigslist-page-sample:
 	#!/usr/bin/env python
 	import asyncio
 	import sys
-	from hyacinth.util.scraping import get_browser_page
+	from hyacinth.util.scraping import get_browser_context
 	from plugins.craigslist.client import _get_detail_content, _get_search_results_content, _parse_search_results
 
 	async def main():
-		async with get_browser_page() as page:
+		async with get_browser_context() as browser_context:
+			page = await browser_context.new_page()
+
 			# search results page
 			search_results = await _get_search_results_content(page, 'boston', 'sss', 0)
 			with open('{{TEST_RESOURCES_DIR}}/{{CRAIGSLIST_SEARCH_RESULT_SAMPLE_FILENAME}}', 'w') as f:
@@ -84,7 +86,7 @@ get-marketplace-page-sample:
 	#!/usr/bin/env python
 	import asyncio
 	import sys
-	from hyacinth.util.scraping import get_browser_page
+	from hyacinth.util.scraping import get_browser_context
 	from plugins.marketplace.client import (
 		_navigate_to_search_results,
 		_navigate_to_listing_and_get_content,
@@ -92,7 +94,9 @@ get-marketplace-page-sample:
 	)
 
 	async def main():
-		async with get_browser_page() as page:
+		async with get_browser_context() as browser_context:
+			page = await browser_context.new_page()
+
 			# search results page
 			await _navigate_to_search_results(page, 'boston', 'motorcycles')
 			search_results = await page.content()
@@ -106,7 +110,6 @@ get-marketplace-page-sample:
 				print('No search results found, skipping listing page')
 				sys.exit(0)
 
-			await page.setJavaScriptEnabled(False)
 			listing_page = await _navigate_to_listing_and_get_content(page, listing_urls[0])
 			with open('{{TEST_RESOURCES_DIR}}/{{MARKETPLACE_RESULT_DETAILS_SAMPLE_FILENAME}}', 'w') as f:
 				f.write(listing_page)
