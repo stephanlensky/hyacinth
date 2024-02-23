@@ -20,7 +20,7 @@ from hyacinth.db.models import Filter, Listing, NotifierSearch
 from hyacinth.db.session import Session
 from hyacinth.enums import RuleType
 from hyacinth.models import ListingMetadata
-from hyacinth.monitor import MarketplaceMonitor
+from hyacinth.monitor import SearchMonitor
 from hyacinth.plugin import Plugin
 from hyacinth.scheduler import get_async_scheduler
 from hyacinth.settings import get_settings
@@ -42,7 +42,7 @@ class ListingNotifier(ABC):
         active_searches: list[NotifierSearch] = field(default_factory=list)
         filters: list[Filter] = field(default_factory=list)
 
-    def __init__(self, monitor: MarketplaceMonitor, config: ListingNotifier.Config) -> None:
+    def __init__(self, monitor: SearchMonitor, config: ListingNotifier.Config) -> None:
         self.monitor = monitor
         self.config = config
 
@@ -268,7 +268,7 @@ class ChannelNotifier(ListingNotifier):
     def __init__(
         self,
         channel: MessageableChannel,
-        monitor: MarketplaceMonitor,
+        monitor: SearchMonitor,
         config: ListingNotifier.Config,
     ) -> None:
         super().__init__(monitor, config)

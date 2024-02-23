@@ -24,7 +24,7 @@ from hyacinth.discord.commands.search import create_search, delete_search, edit_
 from hyacinth.discord.commands.show import show as show_cmd
 from hyacinth.enums import RuleType
 from hyacinth.metrics import start_metrics_write_task
-from hyacinth.monitor import MarketplaceMonitor
+from hyacinth.monitor import SearchMonitor
 from hyacinth.notifier import ChannelNotifier
 from hyacinth.plugin import Plugin, register_plugin
 from hyacinth.settings import get_settings
@@ -43,7 +43,7 @@ class DiscordBot:
         self.client = client
         self.tree = app_commands.CommandTree(client)
 
-        self.monitor = MarketplaceMonitor()
+        self.monitor = SearchMonitor()
         self.notifiers: dict[int, ChannelNotifier] = {}  # channel ID -> notifier
         self.plugins: list[Plugin] = []
 

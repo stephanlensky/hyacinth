@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from hyacinth.db.models import ChannelNotifierState
 
 if TYPE_CHECKING:
-    from hyacinth.monitor import MarketplaceMonitor
+    from hyacinth.monitor import SearchMonitor
     from hyacinth.notifier import ChannelNotifier, ListingNotifier
 
 _logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ def save_notifier_state(session: Session, notifier: ListingNotifier) -> None:
 
 
 def get_channel_notifiers(
-    session: Session, client: discord.Client, monitor: MarketplaceMonitor
+    session: Session, client: discord.Client, monitor: SearchMonitor
 ) -> list[ChannelNotifier]:
     """
     Get all saved ChannelNotifiers from the database.

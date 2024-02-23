@@ -1,10 +1,10 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Sequence
-from zoneinfo import ZoneInfo
 
 from apscheduler.job import Job
 from apscheduler.triggers.interval import IntervalTrigger
+from zoneinfo import ZoneInfo
 
 from hyacinth.db.crud.listing import get_last_listing as get_last_listing_from_db
 from hyacinth.db.crud.listing import get_listings as get_listings_from_db
@@ -20,7 +20,7 @@ settings = get_settings()
 _logger = logging.getLogger(__name__)
 
 
-class MarketplaceMonitor:
+class SearchMonitor:
     def __init__(self) -> None:
         self.scheduler = get_async_scheduler()
         self.search_specs: list[SearchSpec] = []
