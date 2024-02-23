@@ -231,6 +231,7 @@ class DiscordBot:
 async def start() -> None:
     _logger.info("Initializing bot...")
     loop = asyncio.get_running_loop()
+    loop.set_debug(settings.asyncio_debug_mode)
 
     intents = discord.Intents(guilds=True)
     client = discord.Client(intents=intents, loop=loop)

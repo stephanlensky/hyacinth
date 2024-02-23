@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     log_level: int = logging.DEBUG
     log_format: str = "%(asctime)s [%(process)d] [%(levelname)s] %(name)-16s %(message)s"
     log_date_format: str = "%Y-%m-%d %H:%M:%S"
+    asyncio_debug_mode: bool = True
 
     # crash reports
     save_crash_reports: bool = True
