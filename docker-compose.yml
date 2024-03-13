@@ -2,12 +2,13 @@ version: "3.7"
 
 services:
   service: &service
-    build:
-      dockerfile: ./docker/service.dockerfile
-      context: .
-      target: prod
-      args:
-        app_env: prod
+    # build:
+    #   dockerfile: ./docker/service.dockerfile
+    #   context: .
+    #   target: prod
+    #   args:
+    #     app_env: prod
+    image: stephanlensky/hyacinth-prod:main
     stop_grace_period: "2s"
     volumes:
       - ./:/app
@@ -30,18 +31,19 @@ services:
     image: browserless/chrome
     environment:
       - MAX_CONCURRENT_SESSIONS=10
-      - CONNECTION_TIMEOUT=3600000  # 60 minute timeout
+      - CONNECTION_TIMEOUT=3600000 # 60 minute timeout
     ports:
       - "3000:3000"
 
   devbox: &devbox
     <<: *service
-    build:
-      dockerfile: ./docker/service.dockerfile
-      context: .
-      target: dev
-      args:
-        app_env: dev
+    # build:
+    #   dockerfile: ./docker/service.dockerfile
+    #   context: .
+    #   target: dev
+    #   args:
+    #     app_env: dev
+    image: stephanlensky/hyacinth-dev:main
     entrypoint: "poetry shell"
     stdin_open: true
     tty: true
