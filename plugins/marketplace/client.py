@@ -2,16 +2,17 @@ import json
 import logging
 from datetime import datetime
 from typing import AsyncGenerator
+from zoneinfo import ZoneInfo
 
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
-from zoneinfo import ZoneInfo
 
 from hyacinth.exceptions import ParseError
 from hyacinth.settings import get_settings
 from hyacinth.util.geo import reverse_geotag
 from hyacinth.util.scraping import get_browser_context
 from plugins.marketplace.models import MarketplaceListing, MarketplaceSearchParams
+from plugins.marketplace.util import find_json_key
 
 settings = get_settings()
 _logger = logging.getLogger(__name__)
@@ -143,30 +144,50 @@ def _parse_result_details(url: str, content: str) -> MarketplaceListing:
     """
     try:
         soup = BeautifulSoup(content, "html.parser")
-        scripts = soup.find_all("script")
+        scripts = soup.find_all("script", attrs={"type": "application/json"})
         product_data_script = None
+        listing_photos_script = None
         for script in scripts:
-            if "marketplace_product_details_page" in script.text:
-                product_data_script = script
-                break
+            if '"marketplace_product_details_page":' not in script.text:
+                continue
 
+            # listing details are split into two scripts, one with the listing details and one with the photos
+            if '"marketplace_listing_renderable_target":' in script.text:
+                product_data_script = script
+            if '"listing_photos":' in script.text:
+                listing_photos_script = script
+
+        #  script 1 (main listing details)
         if product_data_script is None:
             raise ValueError("Could not find product data script")
 
-        json_start = product_data_script.text.find('{"marketplace_product_details_page":')
-        json_end = product_data_script.text.find(',"node":{', json_start)
-        if json_start == -1 or json_end == -1:
-            raise ValueError("Could not find product JSON in product data script")
-
-        raw_product_json = product_data_script.text[json_start:json_end]
-        product_json = json.loads(raw_product_json)
-        details_json = product_json["marketplace_product_details_page"]
-
-        image_urls = [p["image"]["uri"] for p in details_json["target"]["listing_photos"]]
-        # FB gives unix timestamp in user's local timezone
-        creation_time = datetime.fromtimestamp(
-            details_json["target"]["creation_time"], tz=ZoneInfo(settings.tz)
+        product_data_script_json = json.loads(product_data_script.text)
+        details_json = next(
+            find_json_key(product_data_script_json, "marketplace_product_details_page"), None
         )
+        if not isinstance(details_json, dict):
+            raise ValueError(
+                "Could not find marketplace_product_details_page field in product data JSON"
+            )
+
+        # script 2 (photos)
+        image_urls = []
+        if listing_photos_script is not None:
+            listing_photos_script_json = json.loads(listing_photos_script.text)
+            listing_photos_details_json = next(
+                find_json_key(listing_photos_script_json, "marketplace_product_details_page"), None
+            )
+            if not isinstance(listing_photos_details_json, dict):
+                raise ValueError(
+                    "Could not find marketplace_product_details_page field in listing photos JSON"
+                )
+            image_urls = [
+                p["image"]["uri"] for p in listing_photos_details_json["target"]["listing_photos"]
+            ]
+            # FB gives unix timestamp in user's local timezone
+            creation_time = datetime.fromtimestamp(
+                details_json["target"]["creation_time"], tz=ZoneInfo(settings.tz)
+            )
 
         return MarketplaceListing(
             url=url,

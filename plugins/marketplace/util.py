@@ -3,6 +3,7 @@ import logging
 import os
 from functools import cache
 from pathlib import Path
+from typing import Iterator
 
 from bs4 import BeautifulSoup
 
@@ -74,3 +75,17 @@ def get_categories() -> list[MarketplaceCategory]:
 
 def has_category(category: str) -> bool:
     return any(c.id == category or c.seo_url == category for c in get_categories())
+
+
+def find_json_key(
+    json_input: dict | list, lookup_key: str
+) -> Iterator[dict | list | str | int | float | bool | None]:
+    if isinstance(json_input, dict):
+        for k, v in json_input.items():
+            if k == lookup_key:
+                yield v
+            else:
+                yield from find_json_key(v, lookup_key)
+    elif isinstance(json_input, list):
+        for item in json_input:
+            yield from find_json_key(item, lookup_key)
