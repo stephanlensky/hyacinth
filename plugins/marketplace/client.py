@@ -2,10 +2,10 @@ import json
 import logging
 from datetime import datetime
 from typing import AsyncGenerator
-from zoneinfo import ZoneInfo
 
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
+from zoneinfo import ZoneInfo
 
 from hyacinth.exceptions import ParseError
 from hyacinth.settings import get_settings
@@ -184,10 +184,11 @@ def _parse_result_details(url: str, content: str) -> MarketplaceListing:
             image_urls = [
                 p["image"]["uri"] for p in listing_photos_details_json["target"]["listing_photos"]
             ]
-            # FB gives unix timestamp in user's local timezone
-            creation_time = datetime.fromtimestamp(
-                details_json["target"]["creation_time"], tz=ZoneInfo(settings.tz)
-            )
+
+        # FB gives unix timestamp in user's local timezone
+        creation_time = datetime.fromtimestamp(
+            details_json["target"]["creation_time"], tz=ZoneInfo(settings.tz)
+        )
 
         return MarketplaceListing(
             url=url,
