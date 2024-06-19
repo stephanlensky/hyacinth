@@ -1,0 +1,103 @@
+name: docker
+
+on:
+  push:
+    branches:
+      - "main"
+    tags:
+      - "*"
+  pull_request:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-publish-image:
+    name: Build Registry
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        target:
+          - prod
+          - dev
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      #   - name: Extract Version information for ${{ matrix.package }}
+      #     id: extract_hash
+      #     run: |
+      #       echo BUILD_HASH=$(git describe --abbrev=8 --always --tags --dirty) >> $GITHUB_ENV
+
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v5.2
+
+      - name: Get a docker ready tag
+        run: |
+          echo "${{ steps.branch-name.outputs.current_branch }}"
+          echo "${{ steps.meta.outputs.tags }}"
+          echo "CUSTOM_TAG=ghcr.io/stephanlensky/$(echo hyacinth-${{ matrix.target }} | sed 's/[A-Z_]\|L&//'):$(echo "${{ steps.branch-name.outputs.current_branch }}" | sed 's/[^a-zA-Z0-9]/-/g; s/[A-Z]/\L&/g')" >> $GITHUB_ENV
+
+        # Line above must be changed!
+
+      - name: Move context to root
+        run: cp docker/service.dockerfile Dockerfile
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          push: true
+          build-args: |
+            GIT_COMMIT=${{ env.BUILD_HASH }}
+            DEBUG=False
+            app_env=${{ matrix.target }}
+          tags: ${{ env.CUSTOM_TAG }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  gcr-cleaner:
+    runs-on: "ubuntu-latest"
+    needs: [build-and-publish-image]
+
+    steps:
+      - name: Clean hyacinth dev
+        id: clean_hyacinth_dev
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: "hyacinth-dev"
+          package-type: "container"
+          min-versions-to-keep: 2
+          delete-only-untagged-versions: "true"
+
+      - name: Clean hyacinth prod
+        id: clean_hyacinth_prod
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: "hyacinth-prod"
+          package-type: "container"
+          min-versions-to-keep: 2
+          delete-only-untagged-versions: "true"
