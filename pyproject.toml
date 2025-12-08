@@ -33,7 +33,7 @@ wrapt = "^1.15.0"
 playwright = "^1.41.2"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.0.0"
+black = "^25.0.0"
 docformatter = "^1.7.5"
 mkdocs-material = "^9.1.21"
 mypy = "^1.5.0"
